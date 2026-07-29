@@ -4,7 +4,7 @@ import test from "node:test";
 
 const templateRoot = new URL("../", import.meta.url);
 
-test("contains the complete Causality AI social product", async () => {
+test("contains the complete CoFate AI social product", async () => {
   const [app, layout, deepseek, sessionRoute] = await Promise.all([
     readFile(new URL("../app/causality-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -12,7 +12,7 @@ test("contains the complete Causality AI social product", async () => {
     readFile(new URL("../app/api/sessions/[code]/route.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(layout, /因果 Causality/);
+  assert.match(layout, /因果 CoFate/);
   assert.match(app, /不是和 AI 聊天/);
   assert.match(app, /一个人，去匹配/);
   assert.match(app, /邀请二维码/);

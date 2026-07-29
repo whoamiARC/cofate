@@ -1,4 +1,4 @@
-# 因果 Causality
+# 因果 CoFate
 
 > 不是和 AI 聊天，是和真人一起掉进同一个 AI 世界。
 
