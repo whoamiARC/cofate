@@ -4,29 +4,29 @@ import test from "node:test";
 
 const templateRoot = new URL("../", import.meta.url);
 
-test("contains the complete Causality social MVP entry experience", async () => {
-  const [app, layout] = await Promise.all([
+test("contains the complete Causality AI social product", async () => {
+  const [app, layout, deepseek, sessionRoute] = await Promise.all([
     readFile(new URL("../app/causality-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/deepseek.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/sessions/[code]/route.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(layout, /因果 Causality｜AI原生情境社交平台/);
-  assert.match(app, /不是和AI聊天/);
-  assert.match(app, /创建一个世界/);
-  assert.match(app, /输入邀请码/);
-  assert.match(app, /生成世界二维码/);
+  assert.match(layout, /因果 Causality/);
+  assert.match(app, /不是和 AI 聊天/);
+  assert.match(app, /一个人，去匹配/);
+  assert.match(app, /邀请二维码/);
+  assert.match(deepseek, /deepseek-v4-flash/);
+  assert.match(sessionRoute, /x-player-token/);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
 });
 
 test("removes the temporary starter preview", async () => {
-  const [page, layout, packageJson] = await Promise.all([
+  const [page, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
-
   assert.match(page, /CausalityApp/);
-  assert.match(layout, /因果 Causality/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });
