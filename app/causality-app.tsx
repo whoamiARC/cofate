@@ -1,12 +1,18 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { SessionEntryView, SessionView } from "../lib/session-types";
+import { InstallAppButton } from "./install-app";
 
 type View = "home" | "create" | "match" | "room";
 
 function tokenKey(code: string) {
+  return `cofate-player:${code}`;
+}
+
+function legacyTokenKey(code: string) {
   return `causality-player:${code}`;
 }
 
@@ -54,13 +60,17 @@ export function CausalityApp() {
 
   const openRoom = useCallback((code: string, token = "") => {
     const normalized = code.trim().toUpperCase();
-    const savedToken = token || window.localStorage.getItem(tokenKey(normalized)) || "";
+    const savedToken =
+      token ||
+      window.localStorage.getItem(tokenKey(normalized)) ||
+      window.localStorage.getItem(legacyTokenKey(normalized)) ||
+      "";
     setRoomCode(normalized);
     setPlayerToken(savedToken);
     setSession(null);
     setView("room");
     setError("");
-    window.history.replaceState({}, "", `/?world=${normalized}`);
+    window.history.replaceState({}, "", `/app?world=${normalized}`);
     void loadSession(normalized, savedToken);
   }, [loadSession]);
 
@@ -84,7 +94,7 @@ export function CausalityApp() {
 
   const inviteUrl = useMemo(() => {
     if (typeof window === "undefined" || !roomCode) return "";
-    return `${window.location.origin}/?world=${roomCode}`;
+    return `${window.location.origin}/app?world=${roomCode}`;
   }, [roomCode]);
 
   const meChosen = Boolean(session?.members.find((member) => member.id === session.me?.id)?.hasChosen);
@@ -96,7 +106,7 @@ export function CausalityApp() {
     setRoomCode("");
     setError("");
     setInviteOpen(false);
-    window.history.replaceState({}, "", "/");
+    window.history.replaceState({}, "", "/app");
   }
 
   async function createPrivate(event: FormEvent) {
@@ -283,7 +293,10 @@ export function CausalityApp() {
     <main className="home-page">
       <header className="home-header">
         <Brand />
-        <span>煜零科技 · AI 原生社交实验</span>
+        <div className="app-home-actions">
+          <Link href="/">官网</Link>
+          <InstallAppButton className="app-install-button">安装软件</InstallAppButton>
+        </div>
       </header>
       <section className="hero">
         <div className="hero-copy">

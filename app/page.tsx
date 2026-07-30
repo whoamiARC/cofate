@@ -1,5 +1,5 @@
-import { CausalityApp } from "./causality-app";
+import { MarketingHome } from "./marketing-home";
 
 export default function Home() {
-  return <CausalityApp />;
+  return <MarketingHome />;
 }
