@@ -16,6 +16,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /不是和 AI 聊天/);
   assert.match(app, /一个人，去匹配/);
   assert.match(app, /邀请二维码/);
+  assert.match(app, /QRCodeSVG/);
+  assert.doesNotMatch(app, /api\.qrserver\.com/);
   assert.match(deepseek, /deepseek-v4-flash/);
   assert.match(sessionRoute, /x-player-token/);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);

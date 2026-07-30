@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import type { SessionEntryView, SessionView } from "../lib/session-types";
 
 type View = "home" | "create" | "match" | "room";
@@ -413,8 +414,7 @@ function StoryEntry({ entry, meId }: { entry: SessionEntryView; meId: string }) 
 }
 
 function InviteModal({ code, url, onClose, onCopy }: { code: string; url: string; onClose: () => void; onCopy: () => void }) {
-  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data=${encodeURIComponent(url)}`;
-  return <div className="modal-backdrop" onClick={onClose}><section className="invite-modal" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={onClose}>×</button><p className="eyebrow">SCAN TO ENTER</p><h2>让他们扫一下，<br />进入同一个世界。</h2><div className="qr-frame"><img src={qr} alt={`进入世界 ${code} 的二维码`} /><span>COFATE · {code}</span></div><div className="invite-code"><small>六位邀请码</small><b>{code}</b></div><button className="primary-button" onClick={onCopy}>复制邀请链接</button><p className="privacy-note">二维码不包含你的身份凭证</p></section></div>;
+  return <div className="modal-backdrop" onClick={onClose}><section className="invite-modal" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={onClose}>×</button><p className="eyebrow">SCAN TO ENTER</p><h2>让他们扫一下，<br />进入同一个世界。</h2><div className="qr-frame"><QRCodeSVG value={url} size={420} level="M" marginSize={2} role="img" aria-label={`进入世界 ${code} 的二维码`} /><span>COFATE · {code}</span></div><div className="invite-code"><small>六位邀请码</small><b>{code}</b></div><button className="primary-button" onClick={onCopy}>复制邀请链接</button><p className="privacy-note">二维码不包含你的身份凭证</p></section></div>;
 }
 
 function WorldSignal() {
