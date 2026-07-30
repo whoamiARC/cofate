@@ -110,5 +110,13 @@ export async function ensureSchema() {
     env.DB.prepare(
       "CREATE INDEX IF NOT EXISTS sessions_match_idx ON sessions(mode, status, created_at)"
     ),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS request_limits (
+      key TEXT PRIMARY KEY NOT NULL,
+      count INTEGER NOT NULL DEFAULT 0,
+      expires_at INTEGER NOT NULL
+    )`),
+    env.DB.prepare(
+      "CREATE INDEX IF NOT EXISTS request_limits_expiry_idx ON request_limits(expires_at)"
+    ),
   ]);
 }

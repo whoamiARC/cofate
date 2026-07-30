@@ -5,13 +5,14 @@ import test from "node:test";
 const templateRoot = new URL("../", import.meta.url);
 
 test("contains the complete CoFate AI social product", async () => {
-  const [app, marketing, layout, deepseek, sessionRoute, manifest] = await Promise.all([
+  const [app, marketing, layout, deepseek, sessionRoute, manifest, requestGuard] = await Promise.all([
     readFile(new URL("../app/causality-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/marketing-home.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/deepseek.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/sessions/[code]/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
+    readFile(new URL("../lib/request-guard.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(layout, /CoFate 因果/);
@@ -25,6 +26,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.doesNotMatch(app, /api\.qrserver\.com/);
   assert.match(deepseek, /deepseek-v4-flash/);
   assert.match(sessionRoute, /x-player-token/);
+  assert.match(requestGuard, /request_limits/);
+  assert.match(requestGuard, /status: 429/);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
 });
 

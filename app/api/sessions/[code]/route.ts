@@ -10,6 +10,7 @@ import {
   getSessionView,
   submitChoice,
 } from "../../../../lib/session-service";
+import { guardRequest } from "../../../../lib/request-guard";
 
 type RouteContext = { params: Promise<{ code: string }> };
 
@@ -37,6 +38,19 @@ export async function POST(request: Request, context: RouteContext) {
       name?: string;
       content?: string;
     };
+    const limits = {
+      join: 40,
+      start: 8,
+      choice: 120,
+    } as const;
+    if (body.action && body.action in limits) {
+      const blocked = await guardRequest(
+        request,
+        `session:${body.action}`,
+        limits[body.action as keyof typeof limits],
+      );
+      if (blocked) return blocked;
+    }
     const session = await findSession(code);
     if (!session) return Response.json({ error: "这个入口不存在或已经消失" }, { status: 404 });
 

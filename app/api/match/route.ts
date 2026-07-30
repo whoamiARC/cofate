@@ -7,9 +7,12 @@ import {
   createSession,
   generateSessionWorld,
 } from "../../../lib/session-service";
+import { guardRequest } from "../../../lib/request-guard";
 
 export async function POST(request: Request) {
   try {
+    const blocked = await guardRequest(request, "match:request", 20);
+    if (blocked) return blocked;
     const body = (await request.json()) as { name?: string; theme?: string };
     const name = body.name?.trim().slice(0, 16);
     if (!name) return Response.json({ error: "请先留下你的称呼" }, { status: 400 });
