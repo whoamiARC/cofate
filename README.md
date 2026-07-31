@@ -11,7 +11,7 @@ AI 负责世界，真人负责关系。
 - `/`：CoFate 官方网站、产品介绍与 Android APK 下载入口
 - `/app`：无需下载即可使用的 CoFate 网页版
 - `/app?world=XXXXXX`：扫码直接进入指定世界
-- `/downloads/CoFate-Android-Beta-v0.1.1.apk`：Android 7+ 公测安装包
+- `/downloads/CoFate-Android-Beta-v0.1.2.apk`：Android 7+ 公测安装包
 - `/api`：多人房间、匹配和 AI 世界生成服务
 
 ## 当前能力
@@ -32,9 +32,9 @@ Android 工程位于 `android/`，使用 Capacitor 将 CoFate 云端应用封装
 
 - 应用名称：`CoFate 因果`
 - 应用包名：`com.yuzero.cofate`
-- 当前版本：`0.1.1`
+- 当前版本：`0.1.2`
 - 最低系统：Android 7（API 24）
-- 云端入口：`https://cofate.yuzero-tech.workers.dev/app`
+- 云端入口：`https://www.cofate.com/app`
 
 本机构建需要 JDK 21 和 Android SDK 36：
 
