@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, or } from "drizzle-orm";
+import { waitUntil } from "cloudflare:workers";
 import { ensureSchema, getDb } from "../db";
 import { sessionEntries, sessionMembers, sessions } from "../db/schema";
 import { advanceWorld, generateWorld } from "./deepseek";
@@ -307,8 +308,9 @@ export async function submitChoice(input: {
   )).run();
   if (!lock.meta.changes) return { processing: true, duplicate: false };
 
-  try {
-    const recent = await db.select().from(sessionEntries).where(eq(sessionEntries.sessionId, session.id)).orderBy(desc(sessionEntries.createdAt)).limit(20);
+  waitUntil((async () => {
+    try {
+    const recent = await db.select().from(sessionEntries).where(eq(sessionEntries.sessionId, session.id)).orderBy(desc(sessionEntries.createdAt)).limit(12);
     const world = safeJson<WorldState>(session.worldJson, {
       title: session.title,
       premise: session.theme,
@@ -372,12 +374,13 @@ export async function submitChoice(input: {
         updatedAt: now,
       }).where(eq(sessions.id, session.id)),
     ]);
-    return { processing: false, duplicate: false };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "因果暂时没有回应";
-    await db.update(sessions).set({ status: "active", errorMessage: message, updatedAt: new Date() }).where(eq(sessions.id, session.id));
-    throw error;
-  }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "因果暂时没有回应";
+      await db.update(sessions).set({ status: "active", errorMessage: message, updatedAt: new Date() }).where(eq(sessions.id, session.id));
+      throw error;
+    }
+  })());
+  return { processing: true, duplicate: false };
 }
 
 export async function claimForGeneration(sessionId: string) {

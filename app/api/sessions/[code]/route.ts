@@ -1,4 +1,5 @@
 import { count, eq } from "drizzle-orm";
+import { waitUntil } from "cloudflare:workers";
 import { getDb } from "../../../../db";
 import { sessionMembers } from "../../../../db/schema";
 import {
@@ -79,8 +80,8 @@ export async function POST(request: Request, context: RouteContext) {
       if (memberCount < 2) return Response.json({ error: "至少等一个人到场，再开启世界" }, { status: 409 });
       const claimed = await claimForGeneration(session.id);
       if (!claimed) return Response.json({ error: "世界正在生成或已经开始" }, { status: 409 });
-      await generateSessionWorld(session.id);
-      return Response.json({ ok: true });
+      waitUntil(generateSessionWorld(session.id));
+      return Response.json({ ok: true, processing: true }, { status: 202 });
     }
 
     if (body.action === "choice") {

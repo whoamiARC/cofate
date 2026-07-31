@@ -5,9 +5,16 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { SessionEntryView, SessionView } from "../lib/session-types";
 
-const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.2.apk";
+const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.3.apk";
 
-type View = "home" | "create" | "match" | "room";
+type View = "home" | "create" | "join" | "match" | "discover" | "profile" | "room";
+
+const WORLD_PRESETS = [
+  { mark: "夜", title: "末班之后", theme: "午夜末班车越过终点站后，车厢广播开始念出乘客从未说过的秘密" },
+  { mark: "宴", title: "缺席者的晚宴", theme: "朋友聚会多出一套餐具，所有合照里都站着一个没人认识的人" },
+  { mark: "楼", title: "不存在的十三层", theme: "深夜电梯停在不存在的楼层，走廊尽头贴着一份每天都会改写的规则" },
+  { mark: "岛", title: "潮汐失约", theme: "海岛民宿被大雾封住，退潮后沙滩上出现了写着每个人名字的房门" },
+] as const;
 
 function tokenKey(code: string) {
   return `cofate-player:${code}`;
@@ -41,6 +48,7 @@ export function CausalityApp() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [isNativeApp, setIsNativeApp] = useState(false);
 
   const loadSession = useCallback(async (code: string, token = "", quiet = false) => {
     if (!code) return;
@@ -76,6 +84,19 @@ export function CausalityApp() {
   }, [loadSession]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsNativeApp(/CoFateAndroid/i.test(window.navigator.userAgent));
+      const savedName = window.localStorage.getItem("cofate-display-name");
+      if (savedName) setName(savedName);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (name.trim()) window.localStorage.setItem("cofate-display-name", name.trim().slice(0, 16));
+  }, [name]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("world")?.trim().toUpperCase();
     if (!code) return;
@@ -85,9 +106,10 @@ export function CausalityApp() {
 
   useEffect(() => {
     if (view !== "room" || !roomCode) return;
-    const timer = window.setInterval(() => void loadSession(roomCode, playerToken, true), 2200);
+    const fastStatus = session?.status === "generating" || session?.status === "resolving";
+    const timer = window.setInterval(() => void loadSession(roomCode, playerToken, true), fastStatus ? 700 : 1600);
     return () => window.clearInterval(timer);
-  }, [loadSession, playerToken, roomCode, view]);
+  }, [loadSession, playerToken, roomCode, session?.status, view]);
 
   useEffect(() => {
     document.getElementById("story-end")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -235,31 +257,87 @@ export function CausalityApp() {
   if (view === "create" || view === "match") {
     const matching = view === "match";
     return (
-      <main className="form-page">
-        <Header onBack={() => setView("home")} label={matching ? "寻找搭子" : "发起一局"} />
-        <section className="form-layout">
-          <div className="form-copy">
+      <main className={`app-shell app-flow-page ${isNativeApp ? "is-native" : ""}`}>
+        <AppHeader onBack={() => setView("home")} label={matching ? "寻找搭子" : "发起世界"} />
+        <section className="app-flow">
+          <div className="app-flow-intro">
             <p className="eyebrow">{matching ? "FIND ANOTHER SIGNAL" : "CREATE A SHARED WORLD"}</p>
-            <h1>{matching ? <>一个人来，<br />也不必一个人走。</> : <>写下一句话，<br />让世界从这里长出来。</>}</h1>
-            <p>{matching ? "因果会为两位此刻在线的人建立一条共同主线。你遇见的是真人，AI 只负责世界与命运。" : "邀请朋友扫同一个二维码。等所有人到场后，DeepSeek 会按人数生成彼此牵连的身份与规则。"}</p>
+            <h1>{matching ? <>此刻，找一个<br />愿意回应的人。</> : <>用一句话，<br />打开一个世界。</>}</h1>
+            <p>{matching ? "匹配到真人后，AI 会立刻为你们生成共同情境。" : "先选择灵感，也可以完全改成你自己的故事。"}</p>
           </div>
-          <form className="world-form" onSubmit={matching ? startMatching : createPrivate}>
+          <form className="world-form app-world-form" onSubmit={matching ? startMatching : createPrivate}>
             <label>你的称呼<input value={name} onChange={(event) => setName(event.target.value)} maxLength={16} placeholder="例如：小煜" autoFocus /></label>
             {!matching && <label>这一局的名字<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={32} /></label>}
-            <label>给 AI 一点灵感<textarea value={theme} onChange={(event) => setTheme(event.target.value)} maxLength={300} rows={4} placeholder="地点、氛围，或者一句奇怪的规则……" /></label>
+            <fieldset>
+              <legend>快速选择一个氛围</legend>
+              <div className="preset-row">
+                {WORLD_PRESETS.map((preset) => <button type="button" className={theme === preset.theme ? "selected" : ""} onClick={() => { setTheme(preset.theme); if (!matching) setTitle(preset.title); }} key={preset.title}>{preset.mark} · {preset.title}</button>)}
+              </div>
+            </fieldset>
+            <label>世界灵感<textarea value={theme} onChange={(event) => setTheme(event.target.value)} maxLength={300} rows={3} placeholder="地点、氛围，或者一句奇怪的规则……" /></label>
             {!matching && (
               <fieldset>
-                <legend>最多几个人</legend>
+                <legend>参与人数</legend>
                 <div className="count-picker">
                   {[2, 3, 4, 5, 6, 8].map((count) => <button type="button" className={maxPlayers === count ? "selected" : ""} onClick={() => setMaxPlayers(count)} key={count}>{count}</button>)}
                 </div>
               </fieldset>
             )}
             <button className="primary-button" disabled={busy}>{busy ? (matching ? "正在发出信号…" : "正在建立入口…") : (matching ? "开始匹配" : "生成邀请入口")}</button>
-            <p className="privacy-note">不需要注册 · 隐藏身份只在你的设备上显示</p>
+            <p className="privacy-note">无需注册 · 隐藏身份只对本人可见</p>
             {error && <p className="form-error">{error}</p>}
           </form>
         </section>
+      </main>
+    );
+  }
+
+  if (view === "join") {
+    return (
+      <main className={`app-shell app-flow-page ${isNativeApp ? "is-native" : ""}`}>
+        <AppHeader onBack={() => setView("home")} label="进入世界" />
+        <section className="join-screen">
+          <div className="join-glyph">#</div>
+          <p className="eyebrow">INVITATION CODE</p>
+          <h1>输入朋友给你的<br />六位邀请码</h1>
+          <form onSubmit={(event) => { event.preventDefault(); if (joinCode.trim()) openRoom(joinCode); }}>
+            <input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} maxLength={6} placeholder="ABC123" autoFocus />
+            <button className="primary-button" disabled={joinCode.length !== 6}>进入这个世界 <span>→</span></button>
+          </form>
+          <small>也可以直接扫描朋友分享的二维码</small>
+        </section>
+      </main>
+    );
+  }
+
+  if (view === "discover") {
+    return (
+      <main className={`app-shell ${isNativeApp ? "is-native" : ""}`}>
+        <AppTopBar isNativeApp={isNativeApp} />
+        <section className="app-library app-screen-scroll">
+          <p className="eyebrow">WORLD SEEDS</p>
+          <h1>今晚想掉进<br />哪一个世界？</h1>
+          <div className="world-preset-grid">
+            {WORLD_PRESETS.map((preset, index) => <button onClick={() => { setTitle(preset.title); setTheme(preset.theme); setView("create"); }} key={preset.title}><span>{preset.mark}</span><small>0{index + 1}</small><strong>{preset.title}</strong><p>{preset.theme}</p><i>进入设置 →</i></button>)}
+          </div>
+        </section>
+        <AppNav current="discover" onNavigate={setView} />
+      </main>
+    );
+  }
+
+  if (view === "profile") {
+    return (
+      <main className={`app-shell ${isNativeApp ? "is-native" : ""}`}>
+        <AppTopBar isNativeApp={isNativeApp} />
+        <section className="profile-screen">
+          <div className="profile-mark">{playerMark(name || "我")}</div>
+          <p className="eyebrow">MY SIGNAL</p>
+          <h1>{name || "还没有称呼"}</h1>
+          <label>默认称呼<input value={name} onChange={(event) => setName(event.target.value)} maxLength={16} placeholder="输入你的称呼" /></label>
+          <div className="profile-list"><span>当前版本 <b>0.1.3 Beta</b></span><span>身份隐私 <b>仅本机保存</b></span>{!isNativeApp && <Link href="/">访问 CoFate 官网 →</Link>}</div>
+        </section>
+        <AppNav current="profile" onNavigate={setView} />
       </main>
     );
   }
@@ -291,36 +369,22 @@ export function CausalityApp() {
   }
 
   return (
-    <main className="home-page">
-      <header className="home-header">
-        <Brand />
-        <div className="app-home-actions">
-          <Link href="/">官网</Link>
-          <a className="app-install-button" href={ANDROID_APK_PATH} download>下载 APK</a>
-        </div>
-      </header>
-      <section className="hero">
-        <div className="hero-copy">
+    <main className={`app-shell ${isNativeApp ? "is-native" : ""}`}>
+      <AppTopBar isNativeApp={isNativeApp} />
+      <section className="app-dashboard">
+        <div className="dashboard-copy">
           <p className="eyebrow">REAL PEOPLE · GENERATED WORLD</p>
-          <h1>不是和 AI 聊天。<br /><em>是和真人一起，</em><br />掉进同一个故事。</h1>
-          <p className="lead">扫同一个二维码，获得只属于你的身份与规则。每个人的选择交叉成世界主线——适合聚会，也适合一个人寻找此刻在线的搭子。</p>
-          <div className="hero-actions">
-            <button className="primary-button" onClick={() => { setError(""); setView("create"); }}>发起一局 <span>↗</span></button>
-            <button className="match-button" onClick={() => { setError(""); setTheme("两个陌生人在深夜收到同一份规则"); setView("match"); }}><i /> 一个人，去匹配</button>
-          </div>
-          <form className="code-entry" onSubmit={(event) => { event.preventDefault(); if (joinCode.trim()) openRoom(joinCode); }}>
-            <span>#</span><input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase())} maxLength={6} placeholder="输入六位邀请码" /><button>进入</button>
-          </form>
-          {error && <p className="form-error">{error}</p>}
+          <h1>今晚，<br /><em>你想进入哪一种因果？</em></h1>
+          <p>AI 生成世界，真人做出选择。每个人都有一条只属于自己的秘密。</p>
         </div>
-        <WorldSignal />
+        <div className="app-choice-grid">
+          <button className="choice-card choice-card-main" onClick={() => { setError(""); setView("create"); }}><span>01 · 和朋友一起</span><strong>发起一个世界</strong><p>创建二维码，让身边的人同时进入</p><i>→</i></button>
+          <button className="choice-card" onClick={() => { setError(""); setView("join"); }}><span>02 · 已有邀请</span><strong>输入邀请码</strong><p>进入朋友正在等待的世界</p><i>#</i></button>
+          <button className="choice-card choice-card-dark" onClick={() => { setError(""); setTheme("两个陌生人在深夜收到同一份规则"); setView("match"); }}><span>03 · 一个人也可以</span><strong>匹配此刻在线的人</strong><p>真人相遇，AI 负责命运</p><i>●</i></button>
+        </div>
+        {error && <p className="form-error">{error}</p>}
       </section>
-      <section className="manifesto">
-        <div><span>01</span><h2>一个入口</h2><p>二维码或邀请码，把在场和远方的人带进同一段情境。</p></div>
-        <div><span>02</span><h2>每人一个秘密</h2><p>AI 按参与者生成身份、规则和目标，但秘密只对本人可见。</p></div>
-        <div><span>03</span><h2>一条共同主线</h2><p>所有选择汇合后世界才继续，没有旁观者，每个人都是变量。</p></div>
-      </section>
-      <footer className="home-footer"><Brand /><p>AI 生成世界，真人建立关系。</p><span>YUZERO · 2026</span></footer>
+      <AppNav current="home" onNavigate={setView} />
     </main>
   );
 }
@@ -347,6 +411,7 @@ function Room(props: {
   onCopy: () => void;
 }) {
   const { session } = props;
+  const [roomTab, setRoomTab] = useState<"story" | "role" | "people">("story");
   if (!session) return <main className="room-page"><Header onBack={props.onBack} label="正在连接" /><div className="loading-state"><span>因</span><p>正在寻找这个世界的入口…</p>{props.error && <small>{props.error}</small>}</div></main>;
   const waiting = session.status === "waiting";
   const generating = session.status === "generating";
@@ -358,11 +423,13 @@ function Room(props: {
         <div><strong>{session.title}</strong><span>#{session.code} · {statusText(session.status)}</span></div>
         {session.mode === "private" ? <button className="invite-button" onClick={props.onInvite}>邀请</button> : <span className="match-tag">匹配局</span>}
       </header>
-      <div className="room-layout">
+      <div className={`room-layout mobile-tab-${roomTab}`}>
         <aside className="room-sidebar">
-          <p className="eyebrow">PEOPLE IN THIS WORLD</p>
-          <div className="member-list">
-            {session.members.map((member) => <div className="member" key={member.id}><b>{playerMark(member.name)}</b><span>{member.name}<small>{member.isHost ? "发起人" : member.hasChosen ? "已做选择" : "已进入"}</small></span>{member.hasChosen && <i>✓</i>}</div>)}
+          <div className="member-zone">
+            <p className="eyebrow">PEOPLE IN THIS WORLD</p>
+            <div className="member-list">
+              {session.members.map((member) => <div className="member" key={member.id}><b>{playerMark(member.name)}</b><span>{member.name}<small>{member.isHost ? "发起人" : member.hasChosen ? "已做选择" : "已进入"}</small></span>{member.hasChosen && <i>✓</i>}</div>)}
+            </div>
           </div>
           {active && session.me?.role && <RoleCard role={session.me.role} />}
         </aside>
@@ -400,6 +467,7 @@ function Room(props: {
           )}
         </section>
       </div>
+      {active && session.me && <nav className="room-bottom-nav" aria-label="房间导航"><button className={roomTab === "story" ? "selected" : ""} onClick={() => setRoomTab("story")}><span>⌁</span>剧情</button><button className={roomTab === "role" ? "selected" : ""} onClick={() => setRoomTab("role")}><span>◇</span>身份</button><button className={roomTab === "people" ? "selected" : ""} onClick={() => setRoomTab("people")}><span>◌</span>成员</button></nav>}
       {props.inviteOpen && <InviteModal code={props.roomCode} url={props.inviteUrl} onClose={props.onCloseInvite} onCopy={props.onCopy} />}
     </main>
   );
@@ -431,8 +499,16 @@ function InviteModal({ code, url, onClose, onCopy }: { code: string; url: string
   return <div className="modal-backdrop" onClick={onClose}><section className="invite-modal" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={onClose}>×</button><p className="eyebrow">SCAN TO ENTER</p><h2>让他们扫一下，<br />进入同一个世界。</h2><div className="qr-frame"><QRCodeSVG value={url} size={420} level="M" marginSize={2} role="img" aria-label={`进入世界 ${code} 的二维码`} /><span>COFATE · {code}</span></div><div className="invite-code"><small>六位邀请码</small><b>{code}</b></div><button className="primary-button" onClick={onCopy}>复制邀请链接</button><p className="privacy-note">二维码不包含你的身份凭证</p></section></div>;
 }
 
-function WorldSignal() {
-  return <div className="world-signal" aria-hidden="true"><div className="signal-grid" /><div className="orbit orbit-a" /><div className="orbit orbit-b" /><div className="signal-core"><span>因果</span><small>WORLD 00:13</small></div><div className="signal-person person-a"><b>林</b><span>不要相信镜子</span></div><div className="signal-person person-b"><b>周</b><span>正在做出选择</span></div><div className="signal-person person-c"><b>你</b><span>秘密尚未公开</span></div><p>3 个真人 · 1 条共同主线</p></div>;
+function AppTopBar({ isNativeApp }: { isNativeApp: boolean }) {
+  return <header className="app-topbar"><Brand /><div className="app-topbar-actions">{!isNativeApp && <><Link href="/">官网</Link><a href={ANDROID_APK_PATH} download>下载 APK</a></>}<span className="live-pill"><i /> 世界在线</span></div></header>;
+}
+
+function AppHeader({ onBack, label }: { onBack: () => void; label: string }) {
+  return <header className="app-flow-header"><button onClick={onBack} aria-label="返回">←</button><Brand /><span>{label}</span></header>;
+}
+
+function AppNav({ current, onNavigate }: { current: "home" | "discover" | "profile"; onNavigate: (view: View) => void }) {
+  return <nav className="app-bottom-nav" aria-label="应用导航"><button className={current === "home" ? "selected" : ""} onClick={() => onNavigate("home")}><span>⌂</span>入口</button><button className={current === "discover" ? "selected" : ""} onClick={() => onNavigate("discover")}><span>◈</span>世界</button><button className={current === "profile" ? "selected" : ""} onClick={() => onNavigate("profile")}><span>○</span>我的</button></nav>;
 }
 
 function Brand() {
