@@ -21,7 +21,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /邀请二维码/);
   assert.match(app, /QRCodeSVG/);
   assert.match(marketing, /一个二维码/);
-  assert.match(marketing, /免费安装软件/);
+  assert.match(marketing, /下载 Android APK/);
+  assert.match(marketing, /Android 公测 APK/);
   assert.match(manifest, /"display": "standalone"/);
   assert.doesNotMatch(app, /api\.qrserver\.com/);
   assert.match(deepseek, /deepseek-v4-flash/);
@@ -29,6 +30,7 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(requestGuard, /request_limits/);
   assert.match(requestGuard, /status: 429/);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
+  await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.0.apk", templateRoot));
 });
 
 test("removes the temporary starter preview", async () => {

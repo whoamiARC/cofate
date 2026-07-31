@@ -4,7 +4,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { SessionEntryView, SessionView } from "../lib/session-types";
-import { InstallAppButton } from "./install-app";
+
+const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.0.apk";
 
 type View = "home" | "create" | "match" | "room";
 
@@ -295,7 +296,7 @@ export function CausalityApp() {
         <Brand />
         <div className="app-home-actions">
           <Link href="/">官网</Link>
-          <InstallAppButton className="app-install-button">安装软件</InstallAppButton>
+          <a className="app-install-button" href={ANDROID_APK_PATH} download>下载 APK</a>
         </div>
       </header>
       <section className="hero">

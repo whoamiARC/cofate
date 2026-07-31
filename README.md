@@ -8,9 +8,10 @@ AI 负责世界，真人负责关系。
 
 ## 产品结构
 
-- `/`：CoFate 官方网站、产品介绍与软件安装入口
-- `/app`：可安装的 CoFate Web App
+- `/`：CoFate 官方网站、产品介绍与 Android APK 下载入口
+- `/app`：无需下载即可使用的 CoFate 网页版
 - `/app?world=XXXXXX`：扫码直接进入指定世界
+- `/downloads/CoFate-Android-Beta-v0.1.0.apk`：Android 7+ 公测安装包
 - `/api`：多人房间、匹配和 AI 世界生成服务
 
 ## 当前能力
@@ -22,7 +23,28 @@ AI 负责世界，真人负责关系。
 - 所有参与者提交选择后，共同推进世界主线
 - 一个人进入在线双人匹配
 - 持久化成员、回合、公开规则与私人回声
-- 支持安装到 iPhone、Android、Windows 和 macOS 主屏幕
+- 提供可下载到 Android 手机的独立 APK
+- 网页版仍支持 iPhone、Android、Windows 和 macOS 浏览器
+
+## Android 公测版
+
+Android 工程位于 `android/`，使用 Capacitor 将 CoFate 云端应用封装为手机软件：
+
+- 应用名称：`CoFate 因果`
+- 应用包名：`com.yuzero.cofate`
+- 当前版本：`0.1.0`
+- 最低系统：Android 7（API 24）
+- 云端入口：`https://yuzero-causality.yuzero-tech.workers.dev/app`
+
+本机构建需要 JDK 21 和 Android SDK 36：
+
+```bash
+npm run android:sync
+cd android
+gradlew.bat assembleDebug
+```
+
+生成的 APK 位于 `android/app/build/outputs/apk/debug/app-debug.apk`。公测阶段可以直接安装；正式上架应用商店前，需要使用长期保存的正式签名密钥构建 release/AAB。
 
 ## 本地运行
 

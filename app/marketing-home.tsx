@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
-import { InstallAppButton } from "./install-app";
+
+const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.0.apk";
 
 const worldCards = [
   {
@@ -28,6 +29,7 @@ const worldCards = [
 
 export function MarketingHome() {
   const [appUrl, setAppUrl] = useState("/app");
+  const [downloadUrl, setDownloadUrl] = useState(ANDROID_APK_PATH);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -38,6 +40,7 @@ export function MarketingHome() {
     }
     const frame = window.requestAnimationFrame(() => {
       setAppUrl(`${window.location.origin}/app`);
+      setDownloadUrl(`${window.location.origin}${ANDROID_APK_PATH}`);
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
@@ -82,15 +85,15 @@ export function MarketingHome() {
               每个人获得只有自己知道的身份、规则与目标。AI 让世界持续生长，真人的每一次选择，让彼此产生因果。
             </p>
             <div className="site-hero-actions">
-              <InstallAppButton className="site-primary-cta">
-                免费安装软件 <span>↓</span>
-              </InstallAppButton>
+              <a className="site-primary-cta" href={ANDROID_APK_PATH} download>
+                下载 Android APK <span>↓</span>
+              </a>
               <Link className="site-text-link" href="/app">
                 无需安装，直接进入 <span>↗</span>
               </Link>
             </div>
             <div className="site-platforms">
-              <span>iPhone</span><i /> <span>Android</span><i /> <span>Windows</span><i /> <span>macOS</span>
+              <span>Android 7+</span><i /> <span>公测版 v0.1.0</span><i /> <span>4.7 MB</span><i /> <span>iPhone 版筹备中</span>
             </div>
           </div>
           <WorldPortal />
@@ -215,15 +218,15 @@ export function MarketingHome() {
         <div className="download-copy">
           <p className="site-kicker">YOUR NEXT STORY IS WAITING</p>
           <h2>下一段因果，<br />从你发出邀请开始。</h2>
-          <p>公开测试版现已开放。安装到桌面，或者立即从浏览器进入。</p>
+          <p>Android 公测 APK 现已开放。下载后安装到手机，或立即从浏览器进入。</p>
           <div className="download-actions">
-            <InstallAppButton className="download-button">安装 CoFate <span>↓</span></InstallAppButton>
+            <a className="download-button" href={ANDROID_APK_PATH} download>下载 Android APK <span>↓</span></a>
             <Link href="/app">打开网页版</Link>
           </div>
         </div>
         <div className="download-qr">
-          <div><QRCodeSVG value={appUrl} size={220} level="M" marginSize={2} /></div>
-          <p>手机扫码<br /><span>打开 CoFate 公测版</span></p>
+          <div><QRCodeSVG value={downloadUrl} size={220} level="M" marginSize={2} /></div>
+          <p>手机扫码<br /><span>下载 CoFate Android 公测 APK</span></p>
         </div>
       </section>
 

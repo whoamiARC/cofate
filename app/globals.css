@@ -272,6 +272,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   justify-content: space-between;
   font-size: 12px;
   font-weight: 700;
+  text-decoration: none;
   transition: transform .25s ease, box-shadow .25s ease;
 }
 .site-primary-cta:hover,
@@ -840,7 +841,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .download-copy > p:not(.site-kicker) { color: rgba(255,255,255,.45); font-size: 12px; }
 .download-copy .site-kicker { color: var(--site-acid); }
 .download-actions { margin-top: 32px; display: flex; align-items: center; gap: 25px; }
-.download-actions a { color: rgba(255,255,255,.58); text-decoration: none; font-size: 10px; }
+.download-actions > a:not(.download-button) { color: rgba(255,255,255,.58); text-decoration: none; font-size: 10px; }
 .download-qr { display: flex; align-items: center; gap: 22px; }
 .download-qr > div { padding: 13px; border-radius: 9px; background: white; box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 0 70px rgba(221,255,70,.08); }
 .download-qr svg { display: block; }
