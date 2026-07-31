@@ -1328,3 +1328,86 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .script-card-copy > strong { font-size:20px; }
   .script-card-copy > p { min-height:34px; }
 }
+
+/* Choice dock readability — shared by web and Android app */
+.room-page .story-panel { padding-bottom:290px; }
+.room-page .choice-dock {
+  bottom:20px;
+  width:min(980px,calc(100% - 330px));
+  padding:20px;
+  border-radius:20px;
+  background:rgba(250,249,244,.97);
+}
+.room-page .choice-status {
+  margin-bottom:14px;
+  align-items:flex-start;
+  gap:24px;
+}
+.room-page .choice-status span {
+  color:#454b3f;
+  font-size:16px;
+  font-weight:800;
+  line-height:1.5;
+}
+.room-page .choice-status small {
+  overflow:visible;
+  color:#5f6559;
+  font-size:16px;
+  line-height:1.5;
+  text-align:right;
+  text-overflow:clip;
+  white-space:normal;
+}
+.room-page .suggestions {
+  margin-bottom:14px;
+  gap:10px;
+  scrollbar-width:thin;
+}
+.room-page .suggestions button {
+  min-height:44px;
+  padding:10px 16px;
+  border-radius:22px;
+  background:rgba(255,255,255,.58);
+  color:#4a5046;
+  font-size:15px;
+  line-height:1.35;
+}
+.room-page .choice-line {
+  grid-template-columns:1fr 92px;
+  gap:12px;
+}
+.room-page .choice-line textarea {
+  min-height:86px;
+  padding:15px 18px;
+  border-radius:12px;
+  font-size:18px;
+  line-height:1.65;
+}
+.room-page .choice-line textarea::placeholder { color:#8b8f87;opacity:1; }
+.room-page .choice-line button {
+  min-height:86px;
+  border-radius:12px;
+  font-size:17px;
+  font-weight:800;
+}
+
+@media (max-width:860px) {
+  .room-page .story-panel { padding-bottom:315px; }
+  .room-page .choice-dock {
+    left:50%;
+    bottom:calc(10px + env(safe-area-inset-bottom));
+    width:calc(100% - 20px);
+    padding:15px;
+    border-radius:18px;
+  }
+}
+
+@media (max-width:560px) {
+  .room-page .story-panel { padding-bottom:340px; }
+  .room-page .choice-status { display:grid;gap:5px; }
+  .room-page .choice-status small { text-align:left; }
+  .room-page .suggestions button { min-height:42px;padding:9px 14px;font-size:14px; }
+  .room-page .choice-line { grid-template-columns:1fr 72px;gap:9px; }
+  .room-page .choice-line textarea { min-height:82px;padding:13px 14px;font-size:17px; }
+  .room-page .choice-line button { min-height:82px;font-size:16px; }
+}
