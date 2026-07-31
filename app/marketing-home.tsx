@@ -27,7 +27,7 @@ const worldCards = [
 ];
 
 export function MarketingHome() {
-  const [appUrl, setAppUrl] = useState(ANDROID_APK_PATH);
+  const [appUrl, setAppUrl] = useState("/app");
   const [downloadUrl, setDownloadUrl] = useState(ANDROID_APK_PATH);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function MarketingHome() {
       return;
     }
     const frame = window.requestAnimationFrame(() => {
-      setAppUrl(`${window.location.origin}${ANDROID_APK_PATH}`);
+      setAppUrl(`${window.location.origin}/app`);
       setDownloadUrl(`${window.location.origin}${ANDROID_APK_PATH}`);
     });
     return () => window.cancelAnimationFrame(frame);
@@ -60,7 +60,7 @@ export function MarketingHome() {
           <a href="#worlds">世界样本</a>
           <a href="#creators">成为创作者</a>
         </nav>
-        <a className="nav-app-link" href={ANDROID_APK_PATH} download>下载 APP <span>↓</span></a>
+        <a className="nav-app-link" href="/app">进入世界 <span>↗</span></a>
       </header>
 
       <section className="site-hero" id="top">
@@ -82,8 +82,8 @@ export function MarketingHome() {
               每个人获得只有自己知道的身份、规则与目标。AI 让世界持续生长，真人的每一次选择，让彼此产生因果。
             </p>
             <div className="site-hero-actions">
-              <a className="site-primary-cta" href={ANDROID_APK_PATH} download>
-                下载 Android APK <span>↓</span>
+              <a className="site-primary-cta" href="/app">
+                进入网页版世界 <span>↗</span>
               </a>
               <a className="site-text-link" href="#download">查看安装方式 <span>↘</span></a>
             </div>
@@ -97,7 +97,7 @@ export function MarketingHome() {
       </section>
 
       <section className="site-proof" aria-label="产品特点">
-        <div><strong>01</strong><span>扫码获得邀请码<br />在 APP 内进入</span></div>
+        <div><strong>01</strong><span>扫码获得邀请码<br />APP 或网页均可进入</span></div>
         <div><strong>02</strong><span>每人一张<br />仅自己可见的身份卡</span></div>
         <div><strong>03</strong><span>所有选择<br />汇成一条共同主线</span></div>
         <div><strong>∞</strong><span>同一个主题<br />永远不会发生两次</span></div>
@@ -213,10 +213,10 @@ export function MarketingHome() {
         <div className="download-copy">
           <p className="site-kicker">YOUR NEXT STORY IS WAITING</p>
           <h2>下一段因果，<br />从你发出邀请开始。</h2>
-          <p>Android 公测 APK 现已开放。下载后安装到手机，所有创建、匹配、邀请与游玩都在 APP 内完成。</p>
+          <p>Android APP 与网页版现已同时开放。无需安装也可以直接进入世界，手机用户也可下载完整 APP。</p>
           <div className="download-actions">
-            <a className="download-button" href={ANDROID_APK_PATH} download>下载 Android APK <span>↓</span></a>
-            <span>网页版仅提供产品介绍</span>
+            <a className="download-button" href="/app">进入网页版 <span>↗</span></a>
+            <a href={ANDROID_APK_PATH} download>下载 Android APK ↓</a>
           </div>
         </div>
         <div className="download-qr">

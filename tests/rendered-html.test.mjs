@@ -26,6 +26,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(marketing, /一个二维码/);
   assert.match(marketing, /下载 Android APK/);
   assert.match(marketing, /Android 公测 APK/);
+  assert.match(marketing, /进入网页版世界/);
+  assert.doesNotMatch(app, /AppOnlyGate/);
   assert.match(manifest, /"display": "standalone"/);
   assert.doesNotMatch(app, /api\.qrserver\.com/);
   assert.match(deepseek, /deepseek-v4-flash/);

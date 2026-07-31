@@ -314,7 +314,6 @@ export function CausalityApp() {
   }
 
   if (runtimeMode === "checking") return <AppSplash />;
-  if (runtimeMode === "web") return <AppOnlyGate worldCode={roomCode} />;
 
   if (view === "create" || view === "match") {
     const matching = view === "match";
@@ -560,10 +559,6 @@ function InviteModal({ code, url, onClose, onCopy }: { code: string; url: string
 
 function AppSplash() {
   return <main className="app-splash"><span>因</span><strong>CoFate</strong><small>世界正在打开</small></main>;
-}
-
-function AppOnlyGate({ worldCode }: { worldCode: string }) {
-  return <main className="app-only-gate"><section><div className="gate-seal">因</div><p className="eyebrow">THE STORY LIVES IN THE APP</p><h1>故事只在<br />CoFate APP 里发生。</h1><p>{worldCode ? <>你收到的世界邀请码是 <b>{worldCode}</b>。安装 APP 后，在首页输入邀请码即可进入。</> : "官网下载只负责介绍 CoFate。创建、匹配、邀请与游玩都在 APP 内完成。"}</p><a className="primary-button" href={ANDROID_APK_PATH} download>下载 Android APP <span>↓</span></a><Link href="/">返回 CoFate 官网</Link></section></main>;
 }
 
 function ScriptCard({ script, onOpen, featured = false }: { script: ScriptCatalogItem; onOpen: (script: ScriptCatalogItem) => void; featured?: boolean }) {
