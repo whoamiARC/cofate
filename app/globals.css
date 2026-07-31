@@ -1203,3 +1203,128 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .choice-card p { margin-right:25px; }
   .world-preset-grid { grid-template-columns:1fr; }
 }
+
+/* Script store · App 0.1.4 */
+.app-shell,.room-page { font-size:15px; }
+.app-shell .brand > span,.room-page .brand > span { width:40px;height:40px;font-size:20px; }
+.app-shell .brand strong,.room-page .brand strong { font-size:16px; }
+.app-shell .brand small,.room-page .brand small { font-size:7px; }
+.app-shell .eyebrow,.room-page .eyebrow { font-size:10px;letter-spacing:.2em; }
+.app-topbar { height:84px; }
+.quota-pill { min-width:102px;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;gap:9px;border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.48); }
+.quota-pill small { color:var(--muted);font-size:9px; }
+.quota-pill b { width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--ink);color:var(--acid);font-size:11px; }
+.script-store-shell { background:radial-gradient(circle at 90% 2%,rgba(216,255,67,.22),transparent 28%),linear-gradient(155deg,#f8f6ef 0%,#ece9df 100%); }
+.store-home,.script-library { width:min(760px,calc(100% - 36px));margin:0 auto;padding:48px 0 115px; }
+.store-heading { max-width:570px; }
+.store-heading h1 { margin:15px 0 16px;font:400 52px/1.08 Georgia,"Songti SC",serif;letter-spacing:-.055em; }
+.store-heading h1 em { color:#656b5d;font-style:normal; }
+.store-heading > p:last-child { max-width:520px;margin:0;color:var(--muted);font-size:14px;line-height:1.85; }
+.store-quick-actions { margin-top:32px;display:grid;grid-template-columns:1.55fr .8fr;gap:12px; }
+.custom-world-card,.invite-entry-card { position:relative;min-height:154px;padding:21px;overflow:hidden;border:1px solid var(--line);border-radius:20px;text-align:left; }
+.custom-world-card { background:var(--acid); }
+.invite-entry-card { background:var(--ink);color:white; }
+.custom-world-card > span { color:#68712d;font-size:10px;font-weight:700; }
+.custom-world-card strong,.invite-entry-card strong { margin-top:26px;display:block;font:24px Georgia,"Songti SC",serif;font-weight:400; }
+.custom-world-card p,.invite-entry-card p { margin:8px 0 0;font-size:11px; }
+.custom-world-card p { color:#606731; }.invite-entry-card p { color:#94998d; }
+.custom-world-card > i { position:absolute;right:19px;bottom:19px;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:var(--ink);color:var(--acid);font-size:22px;font-style:normal; }
+.invite-entry-card > span { width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#30342a;color:var(--acid);font:20px ui-monospace,monospace; }
+.store-section-title { margin:48px 0 16px;display:flex;align-items:end;justify-content:space-between; }
+.store-section-title h2 { margin:5px 0 0;font:30px Georgia,"Songti SC",serif;font-weight:400; }
+.store-section-title > button { padding:8px 0;border:0;background:transparent;color:#59622d;font-size:11px; }
+.featured-script-row { display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none; }
+.featured-script-row::-webkit-scrollbar,.category-tabs::-webkit-scrollbar { display:none; }
+.featured-script-row .script-card { flex:0 0 69%;scroll-snap-align:start; }
+.script-card-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:12px; }
+.script-card { padding:0;overflow:hidden;border:1px solid rgba(31,35,25,.12);border-radius:22px;background:rgba(255,255,255,.66);color:var(--ink);text-align:left;box-shadow:0 18px 50px rgba(29,33,23,.06);transition:transform .18s ease,box-shadow .18s ease; }
+.script-card:active { transform:scale(.975); }
+.script-art { position:relative;height:142px;overflow:hidden;background:#252820; }
+.script-art::before { content:"";position:absolute;inset:0;opacity:.35;background-image:linear-gradient(rgba(255,255,255,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.15) 1px,transparent 1px);background-size:24px 24px;mask-image:radial-gradient(circle at 55% 48%,black,transparent 74%); }
+.script-art > span { position:absolute;left:20px;bottom:17px;z-index:2;width:58px;height:58px;display:grid;place-items:center;border-radius:18px;background:var(--acid);color:var(--ink);font:28px Georgia,"Songti SC",serif;box-shadow:0 12px 36px rgba(0,0,0,.18); }
+.script-art > i { position:absolute;right:15%;top:18%;width:105px;height:105px;border:1px solid rgba(255,255,255,.24);border-radius:50%; }
+.script-art > i:last-child { right:27%;top:34%;width:58px;height:58px;border-color:rgba(216,255,67,.5); }
+.tone-violet .script-art { background:#28233e; }.tone-violet .script-art > span { background:#9588ff;color:white; }
+.tone-amber .script-art { background:#3d2f20; }.tone-amber .script-art > span { background:#ffc95b; }
+.tone-blue .script-art { background:#1f3040; }.tone-blue .script-art > span { background:#86caff; }
+.tone-rose .script-art { background:#412b31; }.tone-rose .script-art > span { background:#ff9eb2; }
+.tone-mint .script-art { background:#203934; }.tone-mint .script-art > span { background:#8ce6c5; }
+.script-card-copy { padding:17px 18px 19px; }
+.script-meta { display:flex;align-items:center;justify-content:space-between;gap:10px; }
+.script-meta > span { color:#85897e;font-size:9px; }
+.script-meta b { padding:5px 8px;border-radius:12px;font-size:9px; }
+.script-meta b.free { background:rgba(216,255,67,.48);color:#56611d; }.script-meta b.paid { background:var(--ink);color:var(--acid); }
+.script-card-copy > strong { margin-top:15px;display:block;font:25px Georgia,"Songti SC",serif;font-weight:400; }
+.script-card-copy > p { min-height:36px;margin:8px 0 18px;color:var(--muted);font-size:11px;line-height:1.6; }
+.script-card-copy > small { display:flex;justify-content:space-between;color:#797e72;font-size:9px; }
+.script-card-copy > small i { color:#5f692b;font-size:15px;font-style:normal; }
+.match-strip { width:100%;margin-top:14px;padding:18px 20px;display:grid;grid-template-columns:12px 1fr 30px;align-items:center;gap:13px;border:0;border-radius:18px;background:var(--ink);color:white;text-align:left; }
+.match-strip > i { width:9px;height:9px;border-radius:50%;background:var(--violet);box-shadow:0 0 0 6px rgba(129,115,255,.18); }
+.match-strip span { display:grid;gap:4px; }.match-strip small { color:#8f9488;font-size:9px; }.match-strip strong { font-size:14px; }.match-strip > b { color:var(--acid);font-size:20px; }
+.script-library > h1 { margin:12px 0 22px;font:42px Georgia,"Songti SC",serif;font-weight:400; }
+.category-tabs { margin-bottom:20px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none; }
+.category-tabs button { flex:0 0 auto;padding:10px 15px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.45);color:#6e7367;font-size:11px; }
+.category-tabs button.selected { background:var(--ink);color:var(--acid); }
+.app-bottom-nav button,.room-bottom-nav button { font-size:10px; }
+.app-bottom-nav button span,.room-bottom-nav button span { font-size:22px; }
+.app-world-form label,.app-world-form legend { font-size:12px; }
+.app-world-form input,.app-world-form textarea { font-size:15px; }
+.app-flow-intro h1 em { color:#666d5c;font-style:normal; }
+.profile-screen > label,.profile-list > * { font-size:12px; }
+.room-page .member span,.room-page .member small { font-size:11px; }
+.room-page .role-card > p,.room-page .role-card dd,.room-page .world-brief ol { font-size:12px; }
+.room-page .narration-entry p { font-size:17px;line-height:1.9; }
+.room-page .choice-entry p { font-size:14px; }
+.room-page .choice-line textarea { font-size:14px; }
+.purchase-backdrop { position:fixed;inset:0;z-index:80;padding:18px;display:grid;align-items:end;background:rgba(12,14,10,.72);backdrop-filter:blur(12px); }
+.purchase-sheet { position:relative;width:min(440px,100%);margin:0 auto;padding:30px 25px calc(25px + env(safe-area-inset-bottom));border-radius:28px 28px 20px 20px;background:#f7f5ed;box-shadow:0 25px 80px rgba(0,0,0,.28); }
+.purchase-close { position:absolute;right:18px;top:16px;border:0;background:transparent;font-size:27px; }
+.purchase-mark { width:67px;height:67px;margin-bottom:22px;display:grid;place-items:center;border-radius:21px;background:var(--acid);font:25px Georgia,serif; }
+.purchase-sheet h2 { margin:10px 0;font:32px Georgia,"Songti SC",serif;font-weight:400; }
+.purchase-sheet > p:not(.eyebrow) { color:var(--muted);font-size:13px; }
+.purchase-sheet ul { margin:22px 0;padding:17px 17px 17px 34px;border:1px solid var(--line);border-radius:14px;background:white;color:#62675a;font-size:12px;line-height:2; }
+.purchase-sheet .primary-button { width:100%; }
+.purchase-sheet > small { margin-top:12px;display:block;color:#989c92;text-align:center;font-size:9px; }
+.app-splash,.app-only-gate { min-height:100dvh;display:grid;place-content:center;justify-items:center;background:var(--paper);text-align:center; }
+.app-splash > span,.gate-seal { width:76px;height:76px;display:grid;place-items:center;border-radius:24px;background:var(--ink);color:var(--acid);font:31px Georgia,"Songti SC",serif; }
+.app-splash strong { margin-top:17px;font:24px Georgia,serif; }.app-splash small { margin-top:8px;color:var(--muted);font-size:10px; }
+.app-only-gate { padding:25px; }
+.app-only-gate section { width:min(430px,100%);display:grid;justify-items:center; }
+.app-only-gate h1 { margin:20px 0 14px;font:42px/1.16 Georgia,"Songti SC",serif;font-weight:400; }
+.app-only-gate section > p:not(.eyebrow) { margin:0 0 25px;color:var(--muted);font-size:14px;line-height:1.8; }
+.app-only-gate .gate-seal + .eyebrow { margin-top:24px; }
+.app-only-gate .primary-button { width:100%;text-decoration:none; }
+.app-only-gate section > a:last-child { margin-top:18px;color:#70756a;font-size:11px;text-decoration:none; }
+
+@media (max-width:720px) {
+  .app-topbar { height:76px; }
+  .store-home,.script-library { width:calc(100% - 28px);padding-top:30px; }
+  .store-heading h1 { font-size:43px; }
+  .store-heading > p:last-child { font-size:13px; }
+  .store-quick-actions { margin-top:25px;grid-template-columns:1.45fr .9fr;gap:9px; }
+  .custom-world-card,.invite-entry-card { min-height:146px;padding:17px;border-radius:18px; }
+  .custom-world-card strong,.invite-entry-card strong { font-size:21px; }
+  .custom-world-card p,.invite-entry-card p { font-size:10px; }
+  .store-section-title { margin-top:38px; }
+  .store-section-title h2 { font-size:28px; }
+  .featured-script-row .script-card { flex-basis:83%; }
+  .script-art { height:126px; }
+  .script-art > span { width:53px;height:53px;font-size:25px; }
+  .script-card-copy { padding:15px; }
+  .script-card-copy > strong { font-size:22px; }
+  .script-card-copy > p { font-size:10px; }
+  .script-card-grid { gap:9px; }
+  .script-card-grid.compact .script-art { height:105px; }
+  .script-card-grid.compact .script-art > span { width:45px;height:45px;border-radius:14px;font-size:21px; }
+  .script-card-grid.compact .script-card-copy > strong { font-size:19px; }
+  .script-card-grid.compact .script-card-copy > p { min-height:32px;margin-bottom:12px; }
+  .app-flow-intro h1 { font-size:38px; }
+  .app-flow-intro > p:last-child { font-size:12px; }
+}
+
+@media (max-width:390px) {
+  .store-heading h1 { font-size:39px; }
+  .custom-world-card strong,.invite-entry-card strong { font-size:19px; }
+  .script-card-copy > strong { font-size:20px; }
+  .script-card-copy > p { min-height:34px; }
+}

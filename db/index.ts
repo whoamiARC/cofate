@@ -118,5 +118,12 @@ export async function ensureSchema() {
     env.DB.prepare(
       "CREATE INDEX IF NOT EXISTS request_limits_expiry_idx ON request_limits(expires_at)"
     ),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS daily_custom_usage (
+      device_id TEXT NOT NULL,
+      usage_day TEXT NOT NULL,
+      count INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (device_id, usage_day)
+    )`),
   ]);
 }

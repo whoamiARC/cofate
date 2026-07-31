@@ -16,10 +16,11 @@ test("contains the complete CoFate AI social product", async () => {
   ]);
 
   assert.match(layout, /CoFate 因果/);
-  assert.match(app, /你想进入哪一种因果/);
-  assert.match(app, /匹配此刻在线的人/);
+  assert.match(app, /选择今晚的/);
+  assert.match(app, /匹配此刻在线的真人/);
   assert.match(app, /剧情/);
-  assert.match(app, /WORLD_PRESETS/);
+  assert.match(app, /SCRIPT_CATALOG/);
+  assert.match(app, /今日免费额度/);
   assert.match(app, /邀请二维码/);
   assert.match(app, /QRCodeSVG/);
   assert.match(marketing, /一个二维码/);
@@ -34,7 +35,7 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(requestGuard, /request_limits/);
   assert.match(requestGuard, /status: 429/);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
-  await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.3.apk", templateRoot));
+  await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.4.apk", templateRoot));
 });
 
 test("removes the temporary starter preview", async () => {

@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const worlds = sqliteTable("worlds", {
   id: text("id").primaryKey(),
@@ -74,3 +74,10 @@ export const sessionEntries = sqliteTable("session_entries", {
   metaJson: text("meta_json"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+export const dailyCustomUsage = sqliteTable("daily_custom_usage", {
+  deviceId: text("device_id").notNull(),
+  usageDay: text("usage_day").notNull(),
+  count: integer("count").notNull().default(0),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+}, (table) => [primaryKey({ columns: [table.deviceId, table.usageDay] })]);

@@ -15,6 +15,13 @@
       "when": 1785307250806,
       "tag": "0001_pale_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785511041026,
+      "tag": "0002_empty_vapor",
+      "breakpoints": true
     }
   ]
 }

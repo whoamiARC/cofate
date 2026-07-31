@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 
-const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.3.apk";
+const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.4.apk";
 
 const worldCards = [
   {
@@ -28,7 +27,7 @@ const worldCards = [
 ];
 
 export function MarketingHome() {
-  const [appUrl, setAppUrl] = useState("/app");
+  const [appUrl, setAppUrl] = useState(ANDROID_APK_PATH);
   const [downloadUrl, setDownloadUrl] = useState(ANDROID_APK_PATH);
 
   useEffect(() => {
@@ -39,7 +38,7 @@ export function MarketingHome() {
       return;
     }
     const frame = window.requestAnimationFrame(() => {
-      setAppUrl(`${window.location.origin}/app`);
+      setAppUrl(`${window.location.origin}${ANDROID_APK_PATH}`);
       setDownloadUrl(`${window.location.origin}${ANDROID_APK_PATH}`);
     });
     return () => window.cancelAnimationFrame(frame);
@@ -61,9 +60,7 @@ export function MarketingHome() {
           <a href="#worlds">世界样本</a>
           <a href="#creators">成为创作者</a>
         </nav>
-        <Link className="nav-app-link" href="/app">
-          打开软件 <span>↗</span>
-        </Link>
+        <a className="nav-app-link" href={ANDROID_APK_PATH} download>下载 APP <span>↓</span></a>
       </header>
 
       <section className="site-hero" id="top">
@@ -88,12 +85,10 @@ export function MarketingHome() {
               <a className="site-primary-cta" href={ANDROID_APK_PATH} download>
                 下载 Android APK <span>↓</span>
               </a>
-              <Link className="site-text-link" href="/app">
-                无需安装，直接进入 <span>↗</span>
-              </Link>
+              <a className="site-text-link" href="#download">查看安装方式 <span>↘</span></a>
             </div>
             <div className="site-platforms">
-              <span>Android 7+</span><i /> <span>公测版 v0.1.3</span><i /> <span>约 5 MB</span><i /> <span>iPhone 版筹备中</span>
+              <span>Android 7+</span><i /> <span>公测版 v0.1.4</span><i /> <span>约 5 MB</span><i /> <span>iPhone 版筹备中</span>
             </div>
           </div>
           <WorldPortal />
@@ -102,7 +97,7 @@ export function MarketingHome() {
       </section>
 
       <section className="site-proof" aria-label="产品特点">
-        <div><strong>01</strong><span>扫码即入局<br />朋友无需注册</span></div>
+        <div><strong>01</strong><span>扫码获得邀请码<br />在 APP 内进入</span></div>
         <div><strong>02</strong><span>每人一张<br />仅自己可见的身份卡</span></div>
         <div><strong>03</strong><span>所有选择<br />汇成一条共同主线</span></div>
         <div><strong>∞</strong><span>同一个主题<br />永远不会发生两次</span></div>
@@ -218,10 +213,10 @@ export function MarketingHome() {
         <div className="download-copy">
           <p className="site-kicker">YOUR NEXT STORY IS WAITING</p>
           <h2>下一段因果，<br />从你发出邀请开始。</h2>
-          <p>Android 公测 APK 现已开放。下载后安装到手机，或立即从浏览器进入。</p>
+          <p>Android 公测 APK 现已开放。下载后安装到手机，所有创建、匹配、邀请与游玩都在 APP 内完成。</p>
           <div className="download-actions">
             <a className="download-button" href={ANDROID_APK_PATH} download>下载 Android APK <span>↓</span></a>
-            <Link href="/app">打开网页版</Link>
+            <span>网页版仅提供产品介绍</span>
           </div>
         </div>
         <div className="download-qr">

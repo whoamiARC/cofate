@@ -4,17 +4,14 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { SessionEntryView, SessionView } from "../lib/session-types";
+import { SCRIPT_CATALOG, type ScriptCatalogItem } from "../lib/script-catalog";
 
-const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.3.apk";
+const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.4.apk";
 
 type View = "home" | "create" | "join" | "match" | "discover" | "profile" | "room";
 
-const WORLD_PRESETS = [
-  { mark: "夜", title: "末班之后", theme: "午夜末班车越过终点站后，车厢广播开始念出乘客从未说过的秘密" },
-  { mark: "宴", title: "缺席者的晚宴", theme: "朋友聚会多出一套餐具，所有合照里都站着一个没人认识的人" },
-  { mark: "楼", title: "不存在的十三层", theme: "深夜电梯停在不存在的楼层，走廊尽头贴着一份每天都会改写的规则" },
-  { mark: "岛", title: "潮汐失约", theme: "海岛民宿被大雾封住，退潮后沙滩上出现了写着每个人名字的房门" },
-] as const;
+type QuotaView = { day: string; used: number; remaining: number; limit: number };
+type PaywallItem = { title: string; description: string };
 
 function tokenKey(code: string) {
   return `cofate-player:${code}`;
@@ -48,7 +45,14 @@ export function CausalityApp() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [isNativeApp, setIsNativeApp] = useState(false);
+  const [runtimeMode, setRuntimeMode] = useState<"checking" | "native" | "web">("checking");
+  const [deviceId, setDeviceId] = useState("");
+  const [quota, setQuota] = useState<QuotaView>({ day: "", used: 0, remaining: 3, limit: 3 });
+  const [creationKind, setCreationKind] = useState<"custom" | "catalog">("custom");
+  const [selectedScriptId, setSelectedScriptId] = useState("");
+  const [activeCategory, setActiveCategory] = useState("全部");
+  const [paywall, setPaywall] = useState<PaywallItem | null>(null);
+  const isNativeApp = runtimeMode === "native";
 
   const loadSession = useCallback(async (code: string, token = "", quiet = false) => {
     if (!code) return;
@@ -85,9 +89,14 @@ export function CausalityApp() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setIsNativeApp(/CoFateAndroid/i.test(window.navigator.userAgent));
+      const params = new URLSearchParams(window.location.search);
+      const localPreview = ["localhost", "127.0.0.1"].includes(window.location.hostname) && params.get("preview") === "app";
+      setRuntimeMode(/CoFateAndroid/i.test(window.navigator.userAgent) || localPreview ? "native" : "web");
       const savedName = window.localStorage.getItem("cofate-display-name");
       if (savedName) setName(savedName);
+      const savedDeviceId = window.localStorage.getItem("cofate-device-id") || crypto.randomUUID();
+      window.localStorage.setItem("cofate-device-id", savedDeviceId);
+      setDeviceId(savedDeviceId);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -95,6 +104,23 @@ export function CausalityApp() {
   useEffect(() => {
     if (name.trim()) window.localStorage.setItem("cofate-display-name", name.trim().slice(0, 16));
   }, [name]);
+
+  const loadQuota = useCallback(async (id: string) => {
+    if (!id) return;
+    try {
+      const response = await fetch(`/api/quota?deviceId=${encodeURIComponent(id)}`, { cache: "no-store" });
+      const data = (await response.json()) as QuotaView & { error?: string };
+      if (response.ok) setQuota(data);
+    } catch {
+      // Quota will refresh after the next successful custom creation.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!deviceId) return;
+    const timer = window.setTimeout(() => void loadQuota(deviceId), 0);
+    return () => window.clearTimeout(timer);
+  }, [deviceId, loadQuota]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -122,6 +148,35 @@ export function CausalityApp() {
 
   const meChosen = Boolean(session?.members.find((member) => member.id === session.me?.id)?.hasChosen);
   const choicesCount = session?.members.filter((member) => member.hasChosen).length ?? 0;
+  const filteredScripts = activeCategory === "全部"
+    ? SCRIPT_CATALOG
+    : SCRIPT_CATALOG.filter((script) => script.category === activeCategory);
+
+  function openScript(script: ScriptCatalogItem) {
+    if (script.price > 0) {
+      setPaywall({ title: script.title, description: `精品剧本 · ${script.players} · ${script.duration}` });
+      return;
+    }
+    setCreationKind("catalog");
+    setSelectedScriptId(script.id);
+    setTitle(script.title);
+    setTheme(script.theme);
+    setError("");
+    setView("create");
+  }
+
+  function openCustomWorld() {
+    if (quota.remaining <= 0) {
+      setPaywall({ title: "自定义世界", description: "今天的 3 次免费额度已经用完" });
+      return;
+    }
+    setCreationKind("custom");
+    setSelectedScriptId("");
+    setTitle("今晚不要回头");
+    setTheme("朋友聚会结束后，所有人发现门外不是来时的走廊");
+    setError("");
+    setView("create");
+  }
 
   function goHome() {
     setView("home");
@@ -141,10 +196,14 @@ export function CausalityApp() {
       const response = await fetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, title, theme, maxPlayers }),
+        body: JSON.stringify({ name, title, theme, maxPlayers, creationKind, scriptId: selectedScriptId, deviceId }),
       });
-      const data = (await response.json()) as { code?: string; playerToken?: string; error?: string };
+      const data = (await response.json()) as { code?: string; playerToken?: string; quota?: QuotaView; error?: string; paymentRequired?: boolean; item?: string };
+      if (data.paymentRequired) {
+        setPaywall({ title: data.item || "自定义世界", description: data.error || "需要解锁后继续" });
+      }
       if (!response.ok || !data.code || !data.playerToken) throw new Error(data.error || "入口创建失败");
+      if (data.quota) setQuota(data.quota);
       window.localStorage.setItem(tokenKey(data.code), data.playerToken);
       openRoom(data.code, data.playerToken);
       setInviteOpen(true);
@@ -254,27 +313,26 @@ export function CausalityApp() {
     }
   }
 
+  if (runtimeMode === "checking") return <AppSplash />;
+  if (runtimeMode === "web") return <AppOnlyGate worldCode={roomCode} />;
+
   if (view === "create" || view === "match") {
     const matching = view === "match";
+    const selectedScript = SCRIPT_CATALOG.find((script) => script.id === selectedScriptId);
     return (
       <main className={`app-shell app-flow-page ${isNativeApp ? "is-native" : ""}`}>
-        <AppHeader onBack={() => setView("home")} label={matching ? "寻找搭子" : "发起世界"} />
+        <AppHeader onBack={() => setView("home")} label={matching ? "寻找搭子" : creationKind === "catalog" ? "剧本设置" : "自定义世界"} />
         <section className="app-flow">
           <div className="app-flow-intro">
-            <p className="eyebrow">{matching ? "FIND ANOTHER SIGNAL" : "CREATE A SHARED WORLD"}</p>
-            <h1>{matching ? <>此刻，找一个<br />愿意回应的人。</> : <>用一句话，<br />打开一个世界。</>}</h1>
-            <p>{matching ? "匹配到真人后，AI 会立刻为你们生成共同情境。" : "先选择灵感，也可以完全改成你自己的故事。"}</p>
+            <p className="eyebrow">{matching ? "FIND ANOTHER SIGNAL" : creationKind === "catalog" ? "SELECTED SCRIPT" : "CREATE A SHARED WORLD"}</p>
+            <h1>{matching ? <>此刻，找一个<br />愿意回应的人。</> : creationKind === "catalog" ? <>{selectedScript?.title}<br /><em>等待你们进入。</em></> : <>用一句话，<br />打开一个世界。</>}</h1>
+            <p>{matching ? "匹配到真人后，AI 会立刻为你们生成共同情境。" : creationKind === "catalog" ? selectedScript?.tagline : `今天还可以免费自定义 ${quota.remaining} 次。`}</p>
           </div>
           <form className="world-form app-world-form" onSubmit={matching ? startMatching : createPrivate}>
             <label>你的称呼<input value={name} onChange={(event) => setName(event.target.value)} maxLength={16} placeholder="例如：小煜" autoFocus /></label>
-            {!matching && <label>这一局的名字<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={32} /></label>}
-            <fieldset>
-              <legend>快速选择一个氛围</legend>
-              <div className="preset-row">
-                {WORLD_PRESETS.map((preset) => <button type="button" className={theme === preset.theme ? "selected" : ""} onClick={() => { setTheme(preset.theme); if (!matching) setTitle(preset.title); }} key={preset.title}>{preset.mark} · {preset.title}</button>)}
-              </div>
-            </fieldset>
-            <label>世界灵感<textarea value={theme} onChange={(event) => setTheme(event.target.value)} maxLength={300} rows={3} placeholder="地点、氛围，或者一句奇怪的规则……" /></label>
+            {!matching && creationKind === "custom" && <label>这一局的名字<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={32} /></label>}
+            {!matching && creationKind === "custom" && <fieldset><legend>快速灵感</legend><div className="preset-row">{SCRIPT_CATALOG.filter((script) => script.price === 0).slice(0, 5).map((script) => <button type="button" className={theme === script.theme ? "selected" : ""} onClick={() => { setTheme(script.theme); setTitle(script.title); }} key={script.id}>{script.mark} · {script.title}</button>)}</div></fieldset>}
+            <label>{creationKind === "catalog" && !matching ? "本局设定" : "世界灵感"}<textarea value={theme} onChange={(event) => setTheme(event.target.value)} readOnly={creationKind === "catalog" && !matching} maxLength={300} rows={3} placeholder="地点、氛围，或者一句奇怪的规则……" /></label>
             {!matching && (
               <fieldset>
                 <legend>参与人数</legend>
@@ -283,11 +341,12 @@ export function CausalityApp() {
                 </div>
               </fieldset>
             )}
-            <button className="primary-button" disabled={busy}>{busy ? (matching ? "正在发出信号…" : "正在建立入口…") : (matching ? "开始匹配" : "生成邀请入口")}</button>
-            <p className="privacy-note">无需注册 · 隐藏身份只对本人可见</p>
+            <button className="primary-button" disabled={busy}>{busy ? (matching ? "正在发出信号…" : "正在建立入口…") : (matching ? "开始匹配" : creationKind === "catalog" ? "开始这个剧本" : `免费自定义 · 剩余 ${quota.remaining} 次`)}</button>
+            <p className="privacy-note">隐藏身份只对本人可见 · 房主邀请后开局</p>
             {error && <p className="form-error">{error}</p>}
           </form>
         </section>
+        {paywall && <PurchaseSheet item={paywall} onClose={() => setPaywall(null)} />}
       </main>
     );
   }
@@ -312,16 +371,18 @@ export function CausalityApp() {
 
   if (view === "discover") {
     return (
-      <main className={`app-shell ${isNativeApp ? "is-native" : ""}`}>
-        <AppTopBar isNativeApp={isNativeApp} />
-        <section className="app-library app-screen-scroll">
-          <p className="eyebrow">WORLD SEEDS</p>
-          <h1>今晚想掉进<br />哪一个世界？</h1>
-          <div className="world-preset-grid">
-            {WORLD_PRESETS.map((preset, index) => <button onClick={() => { setTitle(preset.title); setTheme(preset.theme); setView("create"); }} key={preset.title}><span>{preset.mark}</span><small>0{index + 1}</small><strong>{preset.title}</strong><p>{preset.theme}</p><i>进入设置 →</i></button>)}
+      <main className={`app-shell script-store-shell ${isNativeApp ? "is-native" : ""}`}>
+        <AppTopBar isNativeApp={isNativeApp} quota={quota} />
+        <section className="script-library app-screen-scroll">
+          <p className="eyebrow">ALL COFATE STORIES</p>
+          <h1>全部剧本</h1>
+          <div className="category-tabs">{["全部", "聚会", "双人", "都市", "校园", "轻悬疑"].map((category) => <button className={activeCategory === category ? "selected" : ""} onClick={() => setActiveCategory(category)} key={category}>{category}</button>)}</div>
+          <div className="script-card-grid">
+            {filteredScripts.map((script) => <ScriptCard script={script} onOpen={openScript} key={script.id} />)}
           </div>
         </section>
         <AppNav current="discover" onNavigate={setView} />
+        {paywall && <PurchaseSheet item={paywall} onClose={() => setPaywall(null)} />}
       </main>
     );
   }
@@ -329,13 +390,13 @@ export function CausalityApp() {
   if (view === "profile") {
     return (
       <main className={`app-shell ${isNativeApp ? "is-native" : ""}`}>
-        <AppTopBar isNativeApp={isNativeApp} />
+        <AppTopBar isNativeApp={isNativeApp} quota={quota} />
         <section className="profile-screen">
           <div className="profile-mark">{playerMark(name || "我")}</div>
           <p className="eyebrow">MY SIGNAL</p>
           <h1>{name || "还没有称呼"}</h1>
           <label>默认称呼<input value={name} onChange={(event) => setName(event.target.value)} maxLength={16} placeholder="输入你的称呼" /></label>
-          <div className="profile-list"><span>当前版本 <b>0.1.3 Beta</b></span><span>身份隐私 <b>仅本机保存</b></span>{!isNativeApp && <Link href="/">访问 CoFate 官网 →</Link>}</div>
+          <div className="profile-list"><span>当前版本 <b>0.1.4 Beta</b></span><span>今日自定义 <b>剩余 {quota.remaining} / {quota.limit} 次</b></span><span>身份隐私 <b>仅本机保存</b></span>{!isNativeApp && <Link href="/">访问 CoFate 官网 →</Link>}</div>
         </section>
         <AppNav current="profile" onNavigate={setView} />
       </main>
@@ -369,22 +430,20 @@ export function CausalityApp() {
   }
 
   return (
-    <main className={`app-shell ${isNativeApp ? "is-native" : ""}`}>
-      <AppTopBar isNativeApp={isNativeApp} />
-      <section className="app-dashboard">
-        <div className="dashboard-copy">
-          <p className="eyebrow">REAL PEOPLE · GENERATED WORLD</p>
-          <h1>今晚，<br /><em>你想进入哪一种因果？</em></h1>
-          <p>AI 生成世界，真人做出选择。每个人都有一条只属于自己的秘密。</p>
-        </div>
-        <div className="app-choice-grid">
-          <button className="choice-card choice-card-main" onClick={() => { setError(""); setView("create"); }}><span>01 · 和朋友一起</span><strong>发起一个世界</strong><p>创建二维码，让身边的人同时进入</p><i>→</i></button>
-          <button className="choice-card" onClick={() => { setError(""); setView("join"); }}><span>02 · 已有邀请</span><strong>输入邀请码</strong><p>进入朋友正在等待的世界</p><i>#</i></button>
-          <button className="choice-card choice-card-dark" onClick={() => { setError(""); setTheme("两个陌生人在深夜收到同一份规则"); setView("match"); }}><span>03 · 一个人也可以</span><strong>匹配此刻在线的人</strong><p>真人相遇，AI 负责命运</p><i>●</i></button>
-        </div>
+    <main className={`app-shell script-store-shell ${isNativeApp ? "is-native" : ""}`}>
+      <AppTopBar isNativeApp={isNativeApp} quota={quota} />
+      <section className="store-home app-screen-scroll">
+        <div className="store-heading"><p className="eyebrow">STORIES FOR REAL PEOPLE</p><h1>选择今晚的<br /><em>共同经历。</em></h1><p>每个剧本都有独立身份、规则与分支。AI 负责世界，朋友负责选择。</p></div>
+        <div className="store-quick-actions"><button className="custom-world-card" onClick={openCustomWorld}><span>AI 自定义</span><strong>写一句话，生成你的剧本</strong><p>今日免费额度 <b>{quota.remaining} / {quota.limit}</b></p><i>＋</i></button><button className="invite-entry-card" onClick={() => { setError(""); setView("join"); }}><span>#</span><strong>输入邀请码</strong><p>进入朋友的世界</p></button></div>
+        <div className="store-section-title"><div><p className="eyebrow">FEATURED TONIGHT</p><h2>今晚精选</h2></div><button onClick={() => setView("discover")}>查看全部 →</button></div>
+        <div className="featured-script-row">{SCRIPT_CATALOG.filter((script) => script.featured).map((script) => <ScriptCard script={script} onOpen={openScript} featured key={script.id} />)}</div>
+        <div className="store-section-title"><div><p className="eyebrow">FREE TO PLAY</p><h2>免费开局</h2></div></div>
+        <div className="script-card-grid compact">{SCRIPT_CATALOG.filter((script) => script.price === 0).slice(0, 6).map((script) => <ScriptCard script={script} onOpen={openScript} key={script.id} />)}</div>
+        <button className="match-strip" onClick={() => { setError(""); setTheme("两个陌生人在深夜收到同一份规则"); setView("match"); }}><i /> <span><small>一个人也可以</small><strong>匹配此刻在线的真人</strong></span><b>→</b></button>
         {error && <p className="form-error">{error}</p>}
       </section>
       <AppNav current="home" onNavigate={setView} />
+      {paywall && <PurchaseSheet item={paywall} onClose={() => setPaywall(null)} />}
     </main>
   );
 }
@@ -499,8 +558,24 @@ function InviteModal({ code, url, onClose, onCopy }: { code: string; url: string
   return <div className="modal-backdrop" onClick={onClose}><section className="invite-modal" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={onClose}>×</button><p className="eyebrow">SCAN TO ENTER</p><h2>让他们扫一下，<br />进入同一个世界。</h2><div className="qr-frame"><QRCodeSVG value={url} size={420} level="M" marginSize={2} role="img" aria-label={`进入世界 ${code} 的二维码`} /><span>COFATE · {code}</span></div><div className="invite-code"><small>六位邀请码</small><b>{code}</b></div><button className="primary-button" onClick={onCopy}>复制邀请链接</button><p className="privacy-note">二维码不包含你的身份凭证</p></section></div>;
 }
 
-function AppTopBar({ isNativeApp }: { isNativeApp: boolean }) {
-  return <header className="app-topbar"><Brand /><div className="app-topbar-actions">{!isNativeApp && <><Link href="/">官网</Link><a href={ANDROID_APK_PATH} download>下载 APK</a></>}<span className="live-pill"><i /> 世界在线</span></div></header>;
+function AppSplash() {
+  return <main className="app-splash"><span>因</span><strong>CoFate</strong><small>世界正在打开</small></main>;
+}
+
+function AppOnlyGate({ worldCode }: { worldCode: string }) {
+  return <main className="app-only-gate"><section><div className="gate-seal">因</div><p className="eyebrow">THE STORY LIVES IN THE APP</p><h1>故事只在<br />CoFate APP 里发生。</h1><p>{worldCode ? <>你收到的世界邀请码是 <b>{worldCode}</b>。安装 APP 后，在首页输入邀请码即可进入。</> : "官网下载只负责介绍 CoFate。创建、匹配、邀请与游玩都在 APP 内完成。"}</p><a className="primary-button" href={ANDROID_APK_PATH} download>下载 Android APP <span>↓</span></a><Link href="/">返回 CoFate 官网</Link></section></main>;
+}
+
+function ScriptCard({ script, onOpen, featured = false }: { script: ScriptCatalogItem; onOpen: (script: ScriptCatalogItem) => void; featured?: boolean }) {
+  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art"><span>{script.mark}</span><i /><i /></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><small>{script.duration} <i>→</i></small></div></button>;
+}
+
+function PurchaseSheet({ item, onClose }: { item: PaywallItem; onClose: () => void }) {
+  return <div className="purchase-backdrop" onClick={onClose}><section className="purchase-sheet" onClick={(event) => event.stopPropagation()}><button className="purchase-close" onClick={onClose}>×</button><div className="purchase-mark">¥1</div><p className="eyebrow">UNLOCK THIS STORY</p><h2>{item.title}</h2><p>{item.description}</p><ul><li>一次解锁，完成本局全部剧情</li><li>所有参与者无需重复购买</li><li>AI 身份、分支与结局完整开放</li></ul><button className="primary-button" disabled>微信支付接入中</button><small>支付能力需要微信商户号，当前先展示正式定价。</small></section></div>;
+}
+
+function AppTopBar({ isNativeApp, quota }: { isNativeApp: boolean; quota: QuotaView }) {
+  return <header className="app-topbar"><Brand /><div className="app-topbar-actions">{!isNativeApp && <><Link href="/">官网</Link><a href={ANDROID_APK_PATH} download>下载 APK</a></>}<span className="quota-pill"><small>今日自定义</small><b>{quota.remaining}/{quota.limit}</b></span></div></header>;
 }
 
 function AppHeader({ onBack, label }: { onBack: () => void; label: string }) {
@@ -508,7 +583,7 @@ function AppHeader({ onBack, label }: { onBack: () => void; label: string }) {
 }
 
 function AppNav({ current, onNavigate }: { current: "home" | "discover" | "profile"; onNavigate: (view: View) => void }) {
-  return <nav className="app-bottom-nav" aria-label="应用导航"><button className={current === "home" ? "selected" : ""} onClick={() => onNavigate("home")}><span>⌂</span>入口</button><button className={current === "discover" ? "selected" : ""} onClick={() => onNavigate("discover")}><span>◈</span>世界</button><button className={current === "profile" ? "selected" : ""} onClick={() => onNavigate("profile")}><span>○</span>我的</button></nav>;
+  return <nav className="app-bottom-nav" aria-label="应用导航"><button className={current === "home" ? "selected" : ""} onClick={() => onNavigate("home")}><span>⌂</span>精选</button><button className={current === "discover" ? "selected" : ""} onClick={() => onNavigate("discover")}><span>◈</span>剧本</button><button className={current === "profile" ? "selected" : ""} onClick={() => onNavigate("profile")}><span>○</span>我的</button></nav>;
 }
 
 function Brand() {
