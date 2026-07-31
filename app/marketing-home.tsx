@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 
-const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.0.apk";
+const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.1.apk";
 
 const worldCards = [
   {
@@ -93,7 +93,7 @@ export function MarketingHome() {
               </Link>
             </div>
             <div className="site-platforms">
-              <span>Android 7+</span><i /> <span>公测版 v0.1.0</span><i /> <span>4.7 MB</span><i /> <span>iPhone 版筹备中</span>
+              <span>Android 7+</span><i /> <span>公测版 v0.1.1</span><i /> <span>4.7 MB</span><i /> <span>iPhone 版筹备中</span>
             </div>
           </div>
           <WorldPortal />

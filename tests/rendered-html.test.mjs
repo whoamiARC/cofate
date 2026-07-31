@@ -30,7 +30,7 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(requestGuard, /request_limits/);
   assert.match(requestGuard, /status: 429/);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
-  await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.0.apk", templateRoot));
+  await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.1.apk", templateRoot));
 });
 
 test("removes the temporary starter preview", async () => {

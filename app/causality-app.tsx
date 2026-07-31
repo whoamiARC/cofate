@@ -5,7 +5,7 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { SessionEntryView, SessionView } from "../lib/session-types";
 
-const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.0.apk";
+const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.1.apk";
 
 type View = "home" | "create" | "match" | "room";
 

@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "yuzero-causality",
+  "name": "cofate",
   "workers_dev": true,
   "preview_urls": false,
   "main": "./dist/server/index.js",
@@ -19,8 +19,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "yuzero-causality-db",
-      "database_id": "39218e87-2697-41d6-a028-2fac21bb5ac0",
+      "database_name": "cofate-db",
+      "database_id": "089c9df5-3780-4891-8ce8-d7f185d9fda0",
       "migrations_dir": "./drizzle"
     }
   ],
