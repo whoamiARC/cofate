@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
-import type { SessionEntryView, SessionView } from "../lib/session-types";
+import type { PlayerProfile, SessionEntryView, SessionView } from "../lib/session-types";
 import { SCRIPT_CATALOG, SCRIPT_CATEGORIES, type ScriptCatalogItem } from "../lib/script-catalog";
 
 const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.4.apk";
@@ -52,6 +52,7 @@ export function CausalityApp() {
   const [selectedScriptId, setSelectedScriptId] = useState("");
   const [activeCategory, setActiveCategory] = useState("全部");
   const [paywall, setPaywall] = useState<PaywallItem | null>(null);
+  const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const isNativeApp = runtimeMode === "native";
 
   const loadSession = useCallback(async (code: string, token = "", quiet = false) => {
@@ -123,6 +124,19 @@ export function CausalityApp() {
   }, [deviceId, loadQuota]);
 
   useEffect(() => {
+    if (!deviceId) return;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/profile?deviceId=${encodeURIComponent(deviceId)}`, { cache: "no-store" });
+        if (response.ok) setProfile(await response.json() as PlayerProfile);
+      } catch {
+        // The profile will refresh after a completed story.
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [deviceId, session?.status]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("world")?.trim().toUpperCase();
     if (!code) return;
@@ -161,6 +175,7 @@ export function CausalityApp() {
     setSelectedScriptId(script.id);
     setTitle(script.title);
     setTheme(script.theme);
+    if (script.playerCount) setMaxPlayers(script.playerCount);
     setError("");
     setView("create");
   }
@@ -223,7 +238,7 @@ export function CausalityApp() {
       const response = await fetch("/api/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, theme }),
+        body: JSON.stringify({ name, theme, deviceId }),
       });
       const data = (await response.json()) as { code?: string; playerToken?: string; error?: string };
       if (!response.ok || !data.code || !data.playerToken) throw new Error(data.error || "匹配暂时不可用");
@@ -246,7 +261,7 @@ export function CausalityApp() {
       const response = await fetch(`/api/sessions/${encodeURIComponent(roomCode)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "join", name }),
+        body: JSON.stringify({ action: "join", name, deviceId }),
       });
       const data = (await response.json()) as { playerToken?: string; error?: string };
       if (!response.ok || !data.playerToken) throw new Error(data.error || "进入失败");
@@ -275,6 +290,26 @@ export function CausalityApp() {
     } catch (startError) {
       setError(startError instanceof Error ? startError.message : "世界生成失败");
       await loadSession(roomCode, playerToken, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function selectRole(roleId: string) {
+    if (!playerToken || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/sessions/${encodeURIComponent(roomCode)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-player-token": playerToken },
+        body: JSON.stringify({ action: "select_role", roleId }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(data.error || "角色选择失败");
+      await loadSession(roomCode, playerToken);
+    } catch (roleError) {
+      setError(roleError instanceof Error ? roleError.message : "角色选择失败");
     } finally {
       setBusy(false);
     }
@@ -332,7 +367,9 @@ export function CausalityApp() {
             {!matching && creationKind === "custom" && <label>这一局的名字<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={32} /></label>}
             {!matching && creationKind === "custom" && <fieldset><legend>快速灵感</legend><div className="preset-row">{SCRIPT_CATALOG.filter((script) => script.price === 0).slice(0, 5).map((script) => <button type="button" className={theme === script.theme ? "selected" : ""} onClick={() => { setTheme(script.theme); setTitle(script.title); }} key={script.id}>{script.mark} · {script.title}</button>)}</div></fieldset>}
             <label>{creationKind === "catalog" && !matching ? "本局设定" : "世界灵感"}<textarea value={theme} onChange={(event) => setTheme(event.target.value)} readOnly={creationKind === "catalog" && !matching} maxLength={300} rows={3} placeholder="地点、氛围，或者一句奇怪的规则……" /></label>
-            {!matching && (
+            {!matching && selectedScript?.playerCount ? (
+              <div className="fixed-player-count"><span>固定人数本</span><strong>{selectedScript.playerCount} 人</strong><p>所有角色到齐并完成选角后才能开局</p></div>
+            ) : !matching && (
               <fieldset>
                 <legend>参与人数</legend>
                 <div className="count-picker">
@@ -387,6 +424,9 @@ export function CausalityApp() {
   }
 
   if (view === "profile") {
+    const currentProfile = profile ?? { displayName: name || "新玩家", xp: 0, points: 0, level: 1, nextLevelXp: 120, gamesPlayed: 0, goalsCompleted: 0, wins: 0 };
+    const levelStartXp = (currentProfile.level - 1) * (currentProfile.level - 1) * 120;
+    const levelProgress = Math.max(0, Math.min(100, ((currentProfile.xp - levelStartXp) / Math.max(1, currentProfile.nextLevelXp - levelStartXp)) * 100));
     return (
       <main className={`app-shell ${isNativeApp ? "is-native" : ""}`}>
         <AppTopBar isNativeApp={isNativeApp} quota={quota} />
@@ -394,8 +434,9 @@ export function CausalityApp() {
           <div className="profile-mark">{playerMark(name || "我")}</div>
           <p className="eyebrow">MY SIGNAL</p>
           <h1>{name || "还没有称呼"}</h1>
+          <div className="profile-level"><span>LV.{currentProfile.level}</span><div><i style={{ width: `${levelProgress}%` }} /></div><small>{currentProfile.xp} / {currentProfile.nextLevelXp} XP</small></div>
           <label>默认称呼<input value={name} onChange={(event) => setName(event.target.value)} maxLength={16} placeholder="输入你的称呼" /></label>
-          <div className="profile-list"><span>当前版本 <b>0.1.4 Beta</b></span><span>今日自定义 <b>剩余 {quota.remaining} / {quota.limit} 次</b></span><span>身份隐私 <b>仅本机保存</b></span>{!isNativeApp && <Link href="/">访问 CoFate 官网 →</Link>}</div>
+          <div className="profile-list"><span>因果积分 <b>{currentProfile.points}</b></span><span>完成局数 <b>{currentProfile.gamesPlayed}</b></span><span>私人目标 <b>{currentProfile.goalsCompleted} 次达成</b></span><span>生还 / 胜利 <b>{currentProfile.wins} 次</b></span><span>今日自定义 <b>剩余 {quota.remaining} / {quota.limit} 次</b></span><span>档案状态 <b>绑定当前设备</b></span>{!isNativeApp && <Link href="/">访问 CoFate 官网 →</Link>}</div>
         </section>
         <AppNav current="profile" onNavigate={setView} />
       </main>
@@ -419,6 +460,7 @@ export function CausalityApp() {
         onChoice={setChoice}
         onJoin={joinSession}
         onStart={startWorld}
+        onSelectRole={selectRole}
         onSubmit={sendChoice}
         onBack={goHome}
         onInvite={() => setInviteOpen(true)}
@@ -462,6 +504,7 @@ function Room(props: {
   onChoice: (value: string) => void;
   onJoin: (event: FormEvent) => void;
   onStart: () => void;
+  onSelectRole: (roleId: string) => void;
   onSubmit: (event: FormEvent) => void;
   onBack: () => void;
   onInvite: () => void;
@@ -486,7 +529,7 @@ function Room(props: {
           <div className="member-zone">
             <p className="eyebrow">PEOPLE IN THIS WORLD</p>
             <div className="member-list">
-              {session.members.map((member) => <div className="member" key={member.id}><b>{playerMark(member.name)}</b><span>{member.name}<small>{member.isHost ? "发起人" : member.hasChosen ? "已做选择" : "已进入"}</small></span>{member.hasChosen && <i>✓</i>}</div>)}
+              {session.members.map((member) => <div className="member" key={member.id}><b>{playerMark(member.name)}</b><span>{member.name}{member.isHost ? " · 房主" : ""}<small>{waiting ? member.roleName || "尚未选择角色" : member.hasChosen ? "已提交私密行动" : member.roleName || "已进入"}</small></span>{member.hasChosen && <i>✓</i>}</div>)}
             </div>
           </div>
           {active && session.me?.role && <RoleCard role={session.me.role} />}
@@ -501,7 +544,7 @@ function Room(props: {
               {props.error && <small className="error-text">{props.error}</small>}
             </div>
           ) : waiting ? (
-            <Lobby session={session} busy={props.busy} error={props.error} onStart={props.onStart} onInvite={props.onInvite} />
+            <Lobby session={session} busy={props.busy} error={props.error} onStart={props.onStart} onInvite={props.onInvite} onSelectRole={props.onSelectRole} />
           ) : generating ? (
             <div className="generating-state"><div className="signal-rings"><i /><i /><span>因</span></div><p>DeepSeek 正在读取所有人的名字</p><h2>世界正在生成</h2><small>它会分别写下身份、秘密规则和彼此交叉的命运。</small></div>
           ) : active ? (
@@ -513,12 +556,13 @@ function Room(props: {
                 <div id="story-end" />
               </div>
               {session.status !== "ended" && <form className="choice-dock" onSubmit={props.onSubmit}>
+                <div className="private-action-note">🔒 私密行动 · 其他玩家看不到你提交的原文</div>
                 <div className="choice-status"><span>第 {session.turn}{session.world?.maxTurns ? ` / ${session.world.maxTurns}` : ""} 回合{session.world?.stageTitle ? ` · ${session.world.stageTitle}` : ""}</span><small>{props.meChosen ? `已提交 · ${props.choicesCount}/${session.members.length} 人完成` : session.world?.nextPrompt}</small></div>
                 {!props.meChosen && session.world?.suggestedChoices?.length ? <div className="suggestions">{session.world.suggestedChoices.map((item) => <button type="button" onClick={() => props.onChoice(item)} key={item}>{item}</button>)}</div> : null}
-                <div className="choice-line"><textarea value={props.choice} onChange={(event) => props.onChoice(event.target.value)} disabled={props.meChosen || props.busy || session.status === "resolving"} maxLength={360} rows={2} placeholder={props.meChosen ? "等待其他人的选择…" : "写下你真正想做的事，也可以先和身边的人讨论"} /><button disabled={props.meChosen || props.busy || !props.choice.trim() || session.status === "resolving"}>{props.busy ? "…" : "提交"}</button></div>
+                <div className="choice-line"><textarea value={props.choice} onChange={(event) => props.onChoice(event.target.value)} disabled={props.meChosen || props.busy || session.status === "resolving"} maxLength={360} rows={2} placeholder={props.meChosen ? "等待其他人的私密行动…" : "写下你的真实行动；公开讨论和最终行动可以不同"} /><button disabled={props.meChosen || props.busy || !props.choice.trim() || session.status === "resolving"}>{props.busy ? "…" : "秘密提交"}</button></div>
                 {props.error && <small className="error-text">{props.error}</small>}
               </form>}
-              {session.status === "ended" && <div className="ending-card"><span>THE END · {session.turn} 回合</span><h2>这一条因果已经闭合。</h2>{session.world?.endingCondition && <p>{session.world.endingCondition}</p>}<button onClick={props.onBack}>回到入口</button></div>}
+              {session.status === "ended" && <EndingCard session={session} onBack={props.onBack} />}
             </>
           ) : (
             <div className="error-state"><span>世界停在了门外</span><p>{session.errorMessage || props.error || "生成过程中发生了意外。"}</p>{session.me.isHost && <button className="primary-button" onClick={props.onStart} disabled={props.busy}>{props.busy ? "正在重试…" : "重新生成世界"}</button>}</div>
@@ -531,19 +575,35 @@ function Room(props: {
   );
 }
 
-function Lobby({ session, busy, error, onStart, onInvite }: { session: SessionView; busy: boolean; error: string; onStart: () => void; onInvite: () => void }) {
+function Lobby({ session, busy, error, onStart, onInvite, onSelectRole }: { session: SessionView; busy: boolean; error: string; onStart: () => void; onInvite: () => void; onSelectRole: (roleId: string) => void }) {
   const isMatch = session.mode === "match";
-  return <div className="lobby-state"><div className="lobby-orbit"><span>{session.members.length}</span><i /></div><p className="eyebrow">{isMatch ? "MATCHING SIGNAL" : "WAITING ROOM"}</p><h1>{isMatch ? "正在寻找另一个此刻仍醒着的人" : "入口已经打开"}</h1><p>{isMatch ? "可以把页面放在这里。有人回应后，因果会自动生成你们的共同世界。" : `已有 ${session.members.length} 人到场，最多 ${session.maxPlayers} 人。把二维码递给身边的人。`}</p>{!isMatch && <button className="secondary-button" onClick={onInvite}>打开邀请二维码</button>}{session.me?.isHost && !isMatch && <button className="primary-button" disabled={busy || session.members.length < 2} onClick={onStart}>{busy ? "世界生成中…" : session.members.length < 2 ? "至少再等一个人" : "所有人到齐，开启世界"}</button>}{error && <small className="error-text">{error}</small>}</div>;
+  const myMember = session.members.find((member) => member.id === session.me?.id);
+  const allRolesSelected = session.members.every((member) => Boolean(member.selectedRoleId));
+  const enoughPlayers = session.requiredPlayers ? session.members.length === session.requiredPlayers : session.members.length >= 2;
+  const ready = enoughPlayers && allRolesSelected;
+  const startLabel = busy
+    ? "世界生成中…"
+    : !enoughPlayers
+      ? session.requiredPlayers ? `等待 ${session.requiredPlayers} 名角色到齐` : "至少再等一个人"
+      : !allRolesSelected
+        ? "等待所有人选择角色"
+        : "角色就位，开启世界";
+  return <div className="lobby-state role-lobby"><div className="lobby-orbit"><span>{session.members.length}</span><i /></div><p className="eyebrow">{isMatch ? "MATCHING SIGNAL" : "CHOOSE YOUR ROLE"}</p><h1>{isMatch ? "正在寻找另一个此刻仍醒着的人" : "先选择你要成为谁"}</h1><p>{isMatch ? "可以把页面放在这里。有人回应后，因果会自动生成你们的共同世界。" : session.requiredPlayers ? `这是固定 ${session.requiredPlayers} 人本。角色名称公开，秘密目标和任务仅本人可见。` : `已有 ${session.members.length} 人到场，最多 ${session.maxPlayers} 人。每个人先选择不同角色。`}</p>{!isMatch && <div className="role-option-grid">{session.roleOptions.map((role) => { const mine = myMember?.selectedRoleId === role.id; const unavailable = Boolean(role.claimedBy && !mine); return <button type="button" className={mine ? "selected" : ""} disabled={busy || unavailable} onClick={() => onSelectRole(role.id)} key={role.id}><span>{mine ? "你的角色" : role.claimedBy ? `${role.claimedBy} 已选择` : "可选择"}</span><strong>{role.title}</strong><p>{role.teaser}</p></button>; })}</div>}{!isMatch && <button className="secondary-button" onClick={onInvite}>打开邀请二维码 · 邀请其他角色</button>}{session.me?.isHost && !isMatch && <button className="primary-button" disabled={busy || !ready} onClick={onStart}>{startLabel}</button>}{error && <small className="error-text">{error}</small>}</div>;
 }
 
 function WorldBrief({ session }: { session: SessionView }) {
   const world = session.world!;
-  return <div className="world-brief"><p className="eyebrow">CURRENT WORLD · TURN {session.turn}{world.maxTurns ? ` / ${world.maxTurns}` : ""}</p><h1>{world.title}</h1><p className="premise">{world.premise}</p>{world.stageTask && <div className="stage-objective"><span>{world.stageTitle || "当前任务"}</span><p>{world.stageTask}</p></div>}<details open><summary>当前公开规则 · {world.publicRules.length}</summary><ol>{world.publicRules.map((rule, index) => <li key={`${rule}-${index}`}>{rule}</li>)}</ol></details>{world.clues.length > 0 && <div className="clue-line"><span>已知线索</span><p>{world.clues.join(" · ")}</p></div>}{world.endingCondition && <details className="ending-condition"><summary>本局终止条件</summary><p>{world.endingCondition}</p></details>}</div>;
+  return <div className="world-brief"><p className="eyebrow">CURRENT WORLD · TURN {session.turn}{world.maxTurns ? ` / ${world.maxTurns}` : ""}</p><h1>{world.title}</h1>{world.format && <span className={`story-format format-${world.format}`}>{world.format}本</span>}<p className="premise">{world.premise}</p>{world.victoryRule && <div className="victory-rule"><span>胜负规则</span><p>{world.victoryRule}</p></div>}{world.stageTask && <div className="stage-objective"><span>{world.stageTitle || "当前任务"}</span><p>{world.stageTask}</p></div>}<details open><summary>当前公开规则 · {world.publicRules.length}</summary><ol>{world.publicRules.map((rule, index) => <li key={`${rule}-${index}`}>{rule}</li>)}</ol></details>{world.clues.length > 0 && <div className="clue-line"><span>已知线索</span><p>{world.clues.join(" · ")}</p></div>}{world.endingCondition && <details className="ending-condition"><summary>本局终止条件</summary><p>{world.endingCondition}</p></details>}</div>;
 }
 
 function RoleCard({ role }: { role: NonNullable<SessionView["me"]>["role"] }) {
   if (!role) return null;
-  return <div className="role-card"><span>仅你可见</span><h3>{role.identity}</h3><p>{role.publicDescription}</p><dl><div><dt>秘密规则</dt><dd>{role.secretRule}</dd></div><div><dt>私人目标</dt><dd>{role.privateGoal}</dd></div></dl></div>;
+  return <div className="role-card"><span>仅你可见</span><h3>{role.identity}</h3><p>{role.publicDescription}</p><dl><div><dt>秘密规则</dt><dd>{role.secretRule}</dd></div><div><dt>私人目标</dt><dd>{role.privateGoal}</dd></div>{role.survivalCondition && <div><dt>胜利 / 生还条件</dt><dd>{role.survivalCondition}</dd></div>}{role.privateTasks?.length ? <div><dt>私人任务</dt><dd><ol>{role.privateTasks.map((task) => <li key={task}>{task}</li>)}</ol></dd></div> : null}</dl></div>;
+}
+
+function EndingCard({ session, onBack }: { session: SessionView; onBack: () => void }) {
+  const result = session.me?.result;
+  return <div className="ending-card personal-ending"><span>PERSONAL RESULT · {session.turn} 回合</span><h2>{result ? result.survived ? "你活到了结局。" : result.goalCompleted ? "你没有生还，但完成了使命。" : "这一次，你没有赢。" : "这一条因果已经闭合。"}</h2>{session.world?.endingCondition && <p>{session.world.endingCondition}</p>}{result ? <><div className="ending-verdict"><b className={result.goalCompleted ? "success" : "failed"}>{result.goalCompleted ? "私人目标达成" : "私人目标未达成"}</b><p>{result.summary}</p></div><div className="ending-task-list">{result.completedTasks.map((task) => <span className="done" key={`done-${task}`}>✓ {task}</span>)}{result.failedTasks.map((task) => <span className="missed" key={`missed-${task}`}>× {task}</span>)}</div><div className="ending-rewards"><span><small>本局经验</small><b>+{result.xpEarned} XP</b></span><span><small>因果积分</small><b>+{result.pointsEarned}</b></span><span><small>账号等级</small><b>LV.{result.levelAfter}</b></span></div>{result.levelAfter > result.levelBefore && <strong className="level-up">LEVEL UP · LV.{result.levelAfter}</strong>}</> : <div className="ending-verdict"><p>个人任务正在结算，请稍候刷新。</p></div>}<button onClick={onBack}>回到入口</button></div>;
 }
 
 function StoryEntry({ entry, meId }: { entry: SessionEntryView; meId: string }) {
@@ -562,7 +622,7 @@ function AppSplash() {
 }
 
 function ScriptCard({ script, onOpen, featured = false }: { script: ScriptCatalogItem; onOpen: (script: ScriptCatalogItem) => void; featured?: boolean }) {
-  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art"><span>{script.mark}</span><i /><i /></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><small>{script.duration} · {script.plan.maxTurns} 回合 <i>→</i></small></div></button>;
+  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.format ?? "合作"}本，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art"><span>{script.mark}</span><i /><i /></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><small>{script.format ?? "合作"} · {script.duration} · {script.plan.maxTurns} 回合 <i>→</i></small></div></button>;
 }
 
 function PurchaseSheet({ item, onClose }: { item: PaywallItem; onClose: () => void }) {

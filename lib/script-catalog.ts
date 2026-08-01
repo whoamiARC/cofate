@@ -29,6 +29,14 @@ export const SCRIPT_CATEGORIES = [
 
 export type ScriptCategory = (typeof SCRIPT_CATEGORIES)[number];
 
+export type ScriptFormat = "合作" | "阵营" | "竞争";
+
+export type ScriptRoleOption = {
+  id: string;
+  title: string;
+  teaser: string;
+};
+
 export type ScriptCatalogItem = {
   id: string;
   mark: string;
@@ -41,6 +49,10 @@ export type ScriptCatalogItem = {
   price: 0 | 1;
   tone: "acid" | "violet" | "amber" | "blue" | "rose" | "mint";
   plan: ScriptPlan;
+  format?: ScriptFormat;
+  playerCount?: number;
+  victoryRule?: string;
+  roleOptions?: ScriptRoleOption[];
   featured?: boolean;
 };
 
@@ -98,7 +110,100 @@ export const SCRIPT_CATALOG: ScriptCatalogItem[] = [
   { id: "snow-manor-switch", mark: "画", title: "雪山庄园无伤案", tagline: "没有受害者，人人都有动机。", theme: "暴雪封住庄园后，主人宣布名画被替换成赝品，奇怪的是每个人都承认自己曾在同一晚偷偷保护过那幅画", category: "推理", players: "4—8 人", duration: "30 分钟", price: 1, tone: "blue", plan: storyPlan(7, "搜查画室、壁炉与运输记录，建立每个人接触名画的时间线。", "拆解互相重叠的保护计划，找出真画、赝品与第三幅练习稿的流转顺序。", "公开完整推理，决定将真画归还、捐赠或继续隐藏。", "画作去向和替换链条得到一致解释；第7回合山路恢复通行。") },
   { id: "moving-treasure-map", mark: "图", title: "会移动的藏宝图", tagline: "目的地会听见你们的争论。", theme: "探险队得到一张会根据队伍关系改变路线的藏宝图，每次有人隐瞒真实目的，岛屿上的道路就会重新移动", category: "冒险", players: "3—6 人", duration: "30 分钟", price: 0, tone: "acid", plan: storyPlan(7, "探索第一段移动路线，确认地图响应承诺、谎言还是队伍投票。", "穿越三处地形并公开部分真实目的，找出宝藏与失踪探险队之间的关系。", "抵达核心遗迹，决定带走宝藏、救回前队伍或让地图继续寻找新主人。", "队伍完成最终取舍并离开核心遗迹；第7回合岛屿重新沉入迷雾。") },
   { id: "seven-seas-library", mark: "舟", title: "七海漂流图书馆", tagline: "每读完一本书，就靠近一座岛。", theme: "一座漂流图书馆在七片海之间寻找不存在于地图上的故乡，船员必须用亲历的故事为书页补全航线", category: "冒险", players: "2—6 人", duration: "30 分钟", price: 1, tone: "violet", plan: storyPlan(7, "探索书舱与空白航海志，每个人选择一本愿意补写的故事。", "用不同故事开启岛屿航线，处理互相矛盾的地图，并找到图书馆最初的读者。", "共同写完最后一页，决定靠岸、继续漂流或把图书馆交给下一批船员。", "最后一页完成且图书馆选定下一段航程；第7回合潮汐将航线定格。") },
+  {
+    id: "shelter-zero",
+    mark: "零",
+    title: "零号避难所",
+    tagline: "四个人进入，只有一个名字能留在生还名单。",
+    theme: "末日风暴抵达零号避难所，系统宣布四名候选者中只有一人能进入最终维生舱；每个人都握有别人无法替代的权限，也都有必须隐瞒的过去",
+    category: "末日",
+    players: "固定 4 人",
+    playerCount: 4,
+    duration: "35 分钟",
+    price: 0,
+    tone: "acid",
+    format: "竞争",
+    victoryRule: "最终只有一名角色获得维生舱生还资格；其余角色仍可通过完成私人任务获得经验与积分。",
+    featured: true,
+    roleOptions: [
+      { id: "engineer", title: "门禁工程师", teaser: "你能改写一次门禁权限，但系统保留了你的旧记录。" },
+      { id: "medic", title: "避难所医官", teaser: "你掌握所有人的生理数据，却有一页检测报告被撕走。" },
+      { id: "quartermaster", title: "物资管理员", teaser: "你拥有维生舱的一半密钥，也知道库存并没有见底。" },
+      { id: "subject-zero", title: "零号实验体", teaser: "档案里没有你的出生记录，主系统却称你为唯一居民。" },
+    ],
+    plan: storyPlan(7, "选择角色并调查维生舱、权限日志与四份候选档案，获得各自第一项筹码。", "通过私密行动结盟、欺骗或交换权限，完成私人任务并判断谁在操纵生还名单。", "进行最终权限提交与生还者表决，系统只接受一个名字。", "唯一生还者完成登记，且四人的私人任务全部结算；第7回合避难所永久封舱。"),
+  },
+  {
+    id: "vacant-throne",
+    mark: "王",
+    title: "三封王令",
+    tagline: "三个人都是真的继承人。",
+    theme: "旧王失踪后留下三封互相矛盾却都盖有真印的王令，三名继承候选人必须在天亮前争取军队、民心与史官中的两方承认",
+    category: "古风",
+    players: "固定 3 人",
+    playerCount: 3,
+    duration: "30 分钟",
+    price: 1,
+    tone: "violet",
+    format: "竞争",
+    victoryRule: "最终只有一人登上王位；没有登基的人仍可因保存王国、揭开旧王真相或完成私人使命获得结算奖励。",
+    roleOptions: [
+      { id: "general-heir", title: "边军继承人", teaser: "军队信任你，但你的王令要求你主动放弃王位。" },
+      { id: "people-heir", title: "民选继承人", teaser: "城中百姓拥护你，却没人能证明你的血统。" },
+      { id: "secret-heir", title: "密诏继承人", teaser: "你拥有最完整的真印，也最清楚旧王为何失踪。" },
+    ],
+    plan: storyPlan(6, "公开三封王令的可见部分，争取第一方势力并调查真印来源。", "通过秘密交易、承诺与揭露改变三方势力，完成各自不能公开的使命。", "进行最后陈词与王位裁定，同时公布旧王失踪的处理方案。", "新王得到至少两方承认且所有私人使命完成结算；第6回合晨钟响起。"),
+  },
+  {
+    id: "last-ticket",
+    mark: "票",
+    title: "最后一张船票",
+    tagline: "两个人都能上船，前提是其中一个放弃名字。",
+    theme: "洪水覆盖城市前，两名陌生人在码头找到最后一张实体船票，检票系统允许两人共同使用，但第二个人必须永久放弃原来的身份与全部社会记录",
+    category: "情感",
+    players: "固定 2 人",
+    playerCount: 2,
+    duration: "22 分钟",
+    price: 0,
+    tone: "rose",
+    format: "阵营",
+    victoryRule: "可以一人带着身份离开、两人以一个共同身份离开，或共同放弃登船；每个人按自己的秘密承诺独立判定胜负。",
+    roleOptions: [
+      { id: "name-holder", title: "名字的持有人", teaser: "船票原本写着你的名字，但你并不确定自己还想成为那个人。" },
+      { id: "recordless", title: "没有记录的人", teaser: "系统查不到你的过去，你却能说出对方从未公开的童年。" },
+    ],
+    plan: storyPlan(5, "核验船票、身份档案与上涨水位，分别确认自己不能公开的底线。", "通过私密选择交换记忆与承诺，判断共同身份是否意味着拯救或抹除。", "完成登船方案并分别确认愿意保留、放弃或共同承担的名字。", "检票系统接受一个最终身份方案，且两人的私人承诺完成结算；第5回合渡船离岸。"),
+  },
 ];
+
+const CATEGORY_ROLE_NAMES: Record<ScriptCategory, string[]> = {
+  聚会: ["组织者", "迟到者", "记录者", "调停者", "旁观者", "旧友", "新面孔", "秘密来宾"],
+  双人: ["先开口的人", "最后回应的人", "保留秘密的人", "寻找答案的人", "过去的见证者", "未来的来客", "守约者", "失约者"],
+  都市: ["夜班职员", "门禁管理员", "临时访客", "失物招领人", "匿名住户", "巡查员", "档案员", "最后离开者"],
+  校园: ["班级记录者", "转学生", "广播员", "值日生", "社团负责人", "校刊编辑", "保管员", "迟到的毕业生"],
+  轻悬疑: ["线索保管者", "第一发现人", "沉默证人", "临时侦探", "被怀疑者", "规则观察员", "关系调停者", "失踪者的朋友"],
+  推理: ["现场保护人", "时间线记录者", "证词核验人", "嫌疑关系人", "物证保管者", "匿名目击者", "推理挑战者", "真相委托人"],
+  科幻: ["系统工程师", "航行记录员", "生物研究员", "临时舰长", "通信员", "休眠者", "殖民代表", "人工智能监护人"],
+  奇幻: ["见习法师", "契约骑士", "异乡旅人", "魔法商人", "王室信使", "龙语翻译", "遗迹守卫", "失落继承人"],
+  古风: ["掌灯人", "巡城使", "客栈掌柜", "远行书生", "江湖医者", "密信使者", "无名剑客", "旧案史官"],
+  末日: ["避难所工程师", "医疗员", "物资管理员", "信号员", "气象观察员", "档案保管者", "搜救队员", "未知幸存者"],
+  情感: ["寄信人", "收信人", "旧日见证者", "未说出口的人", "关系调停者", "共同朋友", "未来来客", "记忆保管者"],
+  喜剧: ["临时主持人", "误入者", "救场专家", "气氛担当", "一本正经的人", "消息撤回者", "万能替补", "意外主角"],
+  冒险: ["领航员", "地图保管者", "遗迹译者", "补给官", "先锋", "宝藏委托人", "失踪队员的后人", "秘密竞争者"],
+};
+
+export function getScriptRoleOptions(scriptId?: string | null, limit = 8): ScriptRoleOption[] {
+  const script = scriptId ? findScript(scriptId) : undefined;
+  if (script?.roleOptions?.length) return script.roleOptions.slice(0, limit);
+  const names = script ? CATEGORY_ROLE_NAMES[script.category] : CATEGORY_ROLE_NAMES.轻悬疑;
+  return names.slice(0, Math.max(2, Math.min(limit, 8))).map((title, index) => ({
+    id: `${script?.id ?? "custom"}-role-${index + 1}`,
+    title,
+    teaser: script
+      ? `你是《${script.title}》中的${title}，公开身份相同，秘密目标会在开局后单独揭晓。`
+      : `你将以${title}的身份进入世界，秘密目标会在开局后单独揭晓。`,
+  }));
+}
 
 export function findScript(scriptId: string) {
   return SCRIPT_CATALOG.find((script) => script.id === scriptId);

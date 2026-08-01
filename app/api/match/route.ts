@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   try {
     const blocked = await guardRequest(request, "match:request", 20);
     if (blocked) return blocked;
-    const body = (await request.json()) as { name?: string; theme?: string };
+    const body = (await request.json()) as { name?: string; theme?: string; deviceId?: string };
     const name = body.name?.trim().slice(0, 16);
     if (!name) return Response.json({ error: "请先留下你的称呼" }, { status: 400 });
     await ensureSchema();
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       if (candidate.status !== "waiting") continue;
       const members = await db.select().from(sessionMembers).where(eq(sessionMembers.sessionId, candidate.id));
       if (members.length !== 1 || members[0].name.toLocaleLowerCase() === name.toLocaleLowerCase()) continue;
-      const joined = await addMember(candidate.id, name);
+      const joined = await addMember(candidate.id, name, body.deviceId);
       const claimed = await claimForGeneration(candidate.id);
       let generationError: string | undefined;
       if (claimed) {
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       theme: body.theme?.trim().slice(0, 300) || "两个陌生人在深夜收到同一份规则",
       mode: "match",
       maxPlayers: 2,
+      deviceId: body.deviceId,
     });
     return Response.json({
       code: created.code,

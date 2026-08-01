@@ -5,7 +5,7 @@ import test from "node:test";
 const templateRoot = new URL("../", import.meta.url);
 
 test("contains the complete CoFate AI social product", async () => {
-  const [app, marketing, layout, deepseek, sessionRoute, manifest, requestGuard, scriptCatalog] = await Promise.all([
+  const [app, marketing, layout, deepseek, sessionRoute, manifest, requestGuard, scriptCatalog, sessionService, schema] = await Promise.all([
     readFile(new URL("../app/causality-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/marketing-home.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -14,6 +14,8 @@ test("contains the complete CoFate AI social product", async () => {
     readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
     readFile(new URL("../lib/request-guard.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/script-catalog.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/session-service.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(layout, /CoFate 因果/);
@@ -38,7 +40,7 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(deepseek, /mustEnd/);
   assert.match(scriptCatalog, /endingCondition/);
   assert.match(scriptCatalog, /第7回合强制结束晚宴/);
-  assert.equal((scriptCatalog.match(/\{ id: "/g) ?? []).length, 32);
+  assert.equal((scriptCatalog.match(/\bcategory: "(?:聚会|双人|都市|校园|轻悬疑|推理|科幻|奇幻|古风|末日|情感|喜剧|冒险)"/g) ?? []).length, 35);
   assert.match(scriptCatalog, /category: "科幻"/);
   assert.match(scriptCatalog, /category: "奇幻"/);
   assert.match(scriptCatalog, /category: "古风"/);
@@ -48,6 +50,14 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(scriptCatalog, /category: "推理"/);
   assert.match(scriptCatalog, /category: "冒险"/);
   assert.match(deepseek, /不要把非悬疑题材强行写成恐怖或规则怪谈/);
+  assert.match(deepseek, /completedTasks/);
+  assert.match(scriptCatalog, /零号避难所/);
+  assert.match(scriptCatalog, /固定 4 人/);
+  assert.match(app, /私密行动/);
+  assert.match(app, /选择你要成为谁/);
+  assert.match(sessionService, /entry\.kind === "choice"/);
+  assert.match(sessionService, /sessionResults/);
+  assert.match(schema, /player_profiles/);
   assert.match(sessionRoute, /waitUntil\(generateSessionWorld/);
   assert.match(sessionRoute, /x-player-token/);
   assert.match(requestGuard, /request_limits/);

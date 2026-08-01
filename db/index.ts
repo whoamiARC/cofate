@@ -125,5 +125,43 @@ export async function ensureSchema() {
       updated_at INTEGER NOT NULL,
       PRIMARY KEY (device_id, usage_day)
     )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS player_profiles (
+      device_id TEXT PRIMARY KEY NOT NULL,
+      display_name TEXT NOT NULL,
+      xp INTEGER NOT NULL DEFAULT 0,
+      points INTEGER NOT NULL DEFAULT 0,
+      games_played INTEGER NOT NULL DEFAULT 0,
+      goals_completed INTEGER NOT NULL DEFAULT 0,
+      wins INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS session_member_profiles (
+      member_id TEXT PRIMARY KEY NOT NULL,
+      device_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (member_id) REFERENCES session_members(id) ON DELETE CASCADE,
+      FOREIGN KEY (device_id) REFERENCES player_profiles(device_id) ON DELETE CASCADE
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS session_results (
+      session_id TEXT NOT NULL,
+      member_id TEXT NOT NULL,
+      result_json TEXT NOT NULL,
+      xp_earned INTEGER NOT NULL,
+      points_earned INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (session_id, member_id),
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+      FOREIGN KEY (member_id) REFERENCES session_members(id) ON DELETE CASCADE
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS session_role_claims (
+      session_id TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      member_id TEXT NOT NULL UNIQUE,
+      selected_at INTEGER NOT NULL,
+      PRIMARY KEY (session_id, role_id),
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+      FOREIGN KEY (member_id) REFERENCES session_members(id) ON DELETE CASCADE
+    )`),
   ]);
 }

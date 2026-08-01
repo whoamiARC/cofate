@@ -81,3 +81,50 @@ export const dailyCustomUsage = sqliteTable("daily_custom_usage", {
   count: integer("count").notNull().default(0),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 }, (table) => [primaryKey({ columns: [table.deviceId, table.usageDay] })]);
+
+export const playerProfiles = sqliteTable("player_profiles", {
+  deviceId: text("device_id").primaryKey(),
+  displayName: text("display_name").notNull(),
+  xp: integer("xp").notNull().default(0),
+  points: integer("points").notNull().default(0),
+  gamesPlayed: integer("games_played").notNull().default(0),
+  goalsCompleted: integer("goals_completed").notNull().default(0),
+  wins: integer("wins").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const sessionMemberProfiles = sqliteTable("session_member_profiles", {
+  memberId: text("member_id")
+    .primaryKey()
+    .references(() => sessionMembers.id, { onDelete: "cascade" }),
+  deviceId: text("device_id")
+    .notNull()
+    .references(() => playerProfiles.deviceId, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const sessionResults = sqliteTable("session_results", {
+  sessionId: text("session_id")
+    .notNull()
+    .references(() => sessions.id, { onDelete: "cascade" }),
+  memberId: text("member_id")
+    .notNull()
+    .references(() => sessionMembers.id, { onDelete: "cascade" }),
+  resultJson: text("result_json").notNull(),
+  xpEarned: integer("xp_earned").notNull(),
+  pointsEarned: integer("points_earned").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+}, (table) => [primaryKey({ columns: [table.sessionId, table.memberId] })]);
+
+export const sessionRoleClaims = sqliteTable("session_role_claims", {
+  sessionId: text("session_id")
+    .notNull()
+    .references(() => sessions.id, { onDelete: "cascade" }),
+  roleId: text("role_id").notNull(),
+  memberId: text("member_id")
+    .notNull()
+    .unique()
+    .references(() => sessionMembers.id, { onDelete: "cascade" }),
+  selectedAt: integer("selected_at", { mode: "timestamp_ms" }).notNull(),
+}, (table) => [primaryKey({ columns: [table.sessionId, table.roleId] })]);

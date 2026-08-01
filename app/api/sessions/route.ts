@@ -37,7 +37,8 @@ export async function POST(request: Request) {
       theme: catalogScript?.theme || body.theme?.trim().slice(0, 300) || "熟悉的聚会地点出现了无法解释的新规则",
       title: catalogScript?.title || body.title,
       mode: "private",
-      maxPlayers: Number.isFinite(body.maxPlayers) ? Number(body.maxPlayers) : 4,
+      maxPlayers: catalogScript?.playerCount ?? (Number.isFinite(body.maxPlayers) ? Number(body.maxPlayers) : 4),
+      deviceId: body.deviceId,
     });
     return Response.json({ code: created.code, playerToken: created.playerToken, quota }, { status: 201 });
   } catch (error) {

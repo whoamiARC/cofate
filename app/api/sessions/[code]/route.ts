@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { waitUntil } from "cloudflare:workers";
 import { getDb } from "../../../../db";
 import { sessionMembers } from "../../../../db/schema";
@@ -9,6 +9,9 @@ import {
   findSession,
   generateSessionWorld,
   getSessionView,
+  RoleAlreadyClaimedError,
+  selectMemberRole,
+  sessionStartError,
   submitChoice,
 } from "../../../../lib/session-service";
 import { guardRequest } from "../../../../lib/request-guard";
@@ -35,12 +38,15 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { code } = await context.params;
     const body = (await request.json()) as {
-      action?: "join" | "start" | "choice";
+      action?: "join" | "select_role" | "start" | "choice";
       name?: string;
       content?: string;
+      deviceId?: string;
+      roleId?: string;
     };
     const limits = {
       join: 40,
+      select_role: 40,
       start: 8,
       choice: 120,
     } as const;
@@ -67,17 +73,24 @@ export async function POST(request: Request, context: RouteContext) {
       if (members.some((member) => member.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
         return Response.json({ error: "这个称呼已经有人使用" }, { status: 409 });
       }
-      const joined = await addMember(session.id, name);
+      const joined = await addMember(session.id, name, body.deviceId);
       return Response.json({ playerToken: joined.playerToken }, { status: 201 });
     }
 
     const member = await findMember(session.id, tokenFrom(request));
     if (!member) return Response.json({ error: "参与者凭证无效，请重新进入" }, { status: 403 });
 
+    if (body.action === "select_role") {
+      const roleId = body.roleId?.trim().slice(0, 120);
+      if (!roleId) return Response.json({ error: "请选择一个角色" }, { status: 400 });
+      await selectMemberRole(session.id, member.id, roleId);
+      return Response.json({ ok: true });
+    }
+
     if (body.action === "start") {
       if (!member.isHost) return Response.json({ error: "只有发起人可以开启世界" }, { status: 403 });
-      const [{ value: memberCount }] = await getDb().select({ value: count() }).from(sessionMembers).where(eq(sessionMembers.sessionId, session.id));
-      if (memberCount < 2) return Response.json({ error: "至少等一个人到场，再开启世界" }, { status: 409 });
+      const startError = await sessionStartError(session.id);
+      if (startError) return Response.json({ error: startError }, { status: 409 });
       const claimed = await claimForGeneration(session.id);
       if (!claimed) return Response.json({ error: "世界正在生成或已经开始" }, { status: 409 });
       waitUntil(generateSessionWorld(session.id));
@@ -94,6 +107,8 @@ export async function POST(request: Request, context: RouteContext) {
     return Response.json({ error: "未知操作" }, { status: 400 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "操作失败";
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: message }, {
+      status: error instanceof RoleAlreadyClaimedError ? 409 : 500,
+    });
   }
 }

@@ -1,10 +1,12 @@
 import { and, asc, desc, eq, or } from "drizzle-orm";
 import { waitUntil } from "cloudflare:workers";
 import { ensureSchema, getDb } from "../db";
-import { sessionEntries, sessionMembers, sessions } from "../db/schema";
+import { playerProfiles, sessionEntries, sessionMemberProfiles, sessionMembers, sessionResults, sessionRoleClaims, sessions } from "../db/schema";
 import { advanceWorld, generateWorld } from "./deepseek";
-import { findScriptByTheme, getScriptPlan, getScriptStage } from "./script-catalog";
+import { findScriptByTheme, getScriptPlan, getScriptRoleOptions, getScriptStage } from "./script-catalog";
 import type {
+  PlayerEndingResult,
+  PlayerProfile,
   RoleCard,
   SessionMode,
   SessionStatus,
@@ -13,6 +15,35 @@ import type {
 } from "./session-types";
 
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export class RoleAlreadyClaimedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RoleAlreadyClaimedError";
+  }
+}
+
+function normalizeDeviceId(value: string | undefined, fallback: string) {
+  return value?.trim().slice(0, 120) || `guest-${fallback}`;
+}
+
+export function levelFromXp(xp: number) {
+  return Math.max(1, Math.floor(Math.sqrt(Math.max(0, xp) / 120)) + 1);
+}
+
+function profileView(profile: typeof playerProfiles.$inferSelect): PlayerProfile {
+  const level = levelFromXp(profile.xp);
+  return {
+    displayName: profile.displayName,
+    xp: profile.xp,
+    points: profile.points,
+    level,
+    nextLevelXp: level * level * 120,
+    gamesPlayed: profile.gamesPlayed,
+    goalsCompleted: profile.goalsCompleted,
+    wins: profile.wins,
+  };
+}
 
 function makeCode() {
   return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
@@ -37,6 +68,7 @@ export async function createSession(input: {
   title?: string;
   mode: SessionMode;
   maxPlayers: number;
+  deviceId?: string;
 }) {
   await ensureSchema();
   const db = getDb();
@@ -49,6 +81,7 @@ export async function createSession(input: {
   const sessionId = crypto.randomUUID();
   const memberId = crypto.randomUUID();
   const playerToken = makeToken();
+  const deviceId = normalizeDeviceId(input.deviceId, memberId);
   const now = new Date();
   await db.batch([
     db.insert(sessions).values({
@@ -76,6 +109,21 @@ export async function createSession(input: {
       joinedAt: now,
       lastSeen: now,
     }),
+    db.insert(playerProfiles).values({
+      deviceId,
+      displayName: input.name.trim().slice(0, 16),
+      xp: 0,
+      points: 0,
+      gamesPlayed: 0,
+      goalsCompleted: 0,
+      wins: 0,
+      createdAt: now,
+      updatedAt: now,
+    }).onConflictDoUpdate({
+      target: playerProfiles.deviceId,
+      set: { displayName: input.name.trim().slice(0, 16), updatedAt: now },
+    }),
+    db.insert(sessionMemberProfiles).values({ memberId, deviceId, createdAt: now }),
     db.insert(sessionEntries).values({
       id: crypto.randomUUID(),
       sessionId,
@@ -111,10 +159,11 @@ export async function findMember(sessionId: string, playerToken: string) {
   return member ?? null;
 }
 
-export async function addMember(sessionId: string, name: string, asHost = false) {
+export async function addMember(sessionId: string, name: string, deviceIdValue = "", asHost = false) {
   const db = getDb();
   const memberId = crypto.randomUUID();
   const playerToken = makeToken();
+  const deviceId = normalizeDeviceId(deviceIdValue, memberId);
   const now = new Date();
   await db.batch([
     db.insert(sessionMembers).values({
@@ -127,6 +176,21 @@ export async function addMember(sessionId: string, name: string, asHost = false)
       joinedAt: now,
       lastSeen: now,
     }),
+    db.insert(playerProfiles).values({
+      deviceId,
+      displayName: name.trim().slice(0, 16),
+      xp: 0,
+      points: 0,
+      gamesPlayed: 0,
+      goalsCompleted: 0,
+      wins: 0,
+      createdAt: now,
+      updatedAt: now,
+    }).onConflictDoUpdate({
+      target: playerProfiles.deviceId,
+      set: { displayName: name.trim().slice(0, 16), updatedAt: now },
+    }),
+    db.insert(sessionMemberProfiles).values({ memberId, deviceId, createdAt: now }),
     db.insert(sessionEntries).values({
       id: crypto.randomUUID(),
       sessionId,
@@ -141,6 +205,63 @@ export async function addMember(sessionId: string, name: string, asHost = false)
     db.update(sessions).set({ updatedAt: now }).where(eq(sessions.id, sessionId)),
   ]);
   return { memberId, playerToken };
+}
+
+export async function getPlayerProfile(deviceIdValue: string) {
+  await ensureSchema();
+  const deviceId = deviceIdValue.trim().slice(0, 120);
+  if (!deviceId) return null;
+  const [profile] = await getDb().select().from(playerProfiles).where(eq(playerProfiles.deviceId, deviceId)).limit(1);
+  return profile ? profileView(profile) : null;
+}
+
+export async function selectMemberRole(sessionId: string, memberId: string, roleId: string) {
+  const db = getDb();
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+  if (!session || session.status !== "waiting") throw new Error("这一局已经不能更换角色");
+  if (session.mode === "match") throw new Error("匹配局由系统即时分配角色");
+  const script = findScriptByTheme(session.theme);
+  const options = getScriptRoleOptions(script?.id, session.maxPlayers);
+  const selected = options.find((option) => option.id === roleId);
+  if (!selected) throw new Error("这个角色不属于当前剧本");
+  const role: RoleCard = {
+    roleId: selected.id,
+    identity: selected.title,
+    publicDescription: selected.teaser,
+    secretRule: "开局后由因果单独揭晓",
+    privateGoal: "开局后由因果单独揭晓",
+    privateTasks: [],
+    survivalCondition: script?.victoryRule || "根据私人目标与最终选择独立结算。",
+  };
+  const now = new Date();
+  try {
+    await db.batch([
+      db.delete(sessionRoleClaims).where(and(eq(sessionRoleClaims.sessionId, session.id), eq(sessionRoleClaims.memberId, memberId))),
+      db.insert(sessionRoleClaims).values({ sessionId: session.id, roleId: selected.id, memberId, selectedAt: now }),
+      db.update(sessionMembers).set({ roleJson: JSON.stringify(role), lastSeen: now }).where(and(
+        eq(sessionMembers.id, memberId),
+        eq(sessionMembers.sessionId, session.id),
+      )),
+    ]);
+  } catch {
+    throw new RoleAlreadyClaimedError(`${selected.title} 已经被其他人选择`);
+  }
+}
+
+export async function sessionStartError(sessionId: string) {
+  const db = getDb();
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+  if (!session) return "世界不存在";
+  const members = await db.select().from(sessionMembers).where(eq(sessionMembers.sessionId, session.id));
+  const script = findScriptByTheme(session.theme);
+  if (script?.playerCount && members.length !== script.playerCount) {
+    return `这是固定 ${script.playerCount} 人本，需要所有角色到齐`;
+  }
+  if (members.length < 2) return "至少等一个人到场，再开启世界";
+  if (session.mode !== "match" && session.status === "waiting" && members.some((member) => !safeJson<RoleCard | null>(member.roleJson, null)?.roleId)) {
+    return "每个人都选择角色后才能开局";
+  }
+  return null;
 }
 
 export async function getSessionView(code: string, playerToken: string): Promise<SessionView | null> {
@@ -162,7 +283,30 @@ export async function getSessionView(code: string, playerToken: string): Promise
       .filter((entry) => entry.kind === "choice" && entry.turn === session.turn && entry.memberId)
       .map((entry) => entry.memberId)
   );
-  const visibleEntries = allEntries.filter((entry) => entry.kind !== "private" || entry.memberId === me?.id);
+  const visibleEntries = allEntries.filter((entry) => {
+    if (entry.kind === "private") return entry.memberId === me?.id;
+    if (entry.kind === "choice") return entry.memberId === me?.id;
+    return true;
+  });
+  const memberRoles = new Map(members.map((member) => [member.id, safeJson<RoleCard | null>(member.roleJson, null)]));
+  const catalogScript = findScriptByTheme(session.theme);
+  const roleOptions = session.mode === "match" ? [] : getScriptRoleOptions(catalogScript?.id, session.maxPlayers).map((option) => ({
+    ...option,
+    claimedBy: members.find((member) => memberRoles.get(member.id)?.roleId === option.id)?.name ?? null,
+  }));
+  let myProfile: PlayerProfile | null = null;
+  let myResult: PlayerEndingResult | null = null;
+  if (me) {
+    const [[profileLink], [resultRow]] = await Promise.all([
+      db.select().from(sessionMemberProfiles).where(eq(sessionMemberProfiles.memberId, me.id)).limit(1),
+      db.select().from(sessionResults).where(and(eq(sessionResults.sessionId, session.id), eq(sessionResults.memberId, me.id))).limit(1),
+    ]);
+    if (profileLink) {
+      const [profile] = await db.select().from(playerProfiles).where(eq(playerProfiles.deviceId, profileLink.deviceId)).limit(1);
+      if (profile) myProfile = profileView(profile);
+    }
+    if (resultRow) myResult = safeJson<PlayerEndingResult | null>(resultRow.resultJson, null);
+  }
   const world = me ? safeJson<WorldState | null>(session.worldJson, null) : null;
   return {
     code: session.code,
@@ -171,6 +315,7 @@ export async function getSessionView(code: string, playerToken: string): Promise
     mode: session.mode as SessionMode,
     status: session.status as SessionStatus,
     maxPlayers: session.maxPlayers,
+    requiredPlayers: catalogScript?.playerCount ?? null,
     turn: session.turn,
     errorMessage: session.errorMessage,
     members: members.map((member) => ({
@@ -178,13 +323,18 @@ export async function getSessionView(code: string, playerToken: string): Promise
       name: member.name,
       isHost: member.isHost,
       hasChosen: chosen.has(member.id),
+      selectedRoleId: memberRoles.get(member.id)?.roleId ?? null,
+      roleName: memberRoles.get(member.id)?.identity ?? null,
     })),
     me: me ? {
       id: me.id,
       name: me.name,
       isHost: me.isHost,
-      role: safeJson<RoleCard | null>(me.roleJson, null),
+      role: memberRoles.get(me.id) ?? null,
+      result: myResult,
+      profile: myProfile,
     } : null,
+    roleOptions,
     world,
     entries: visibleEntries.map((entry) => ({
       id: entry.id,
@@ -207,9 +357,13 @@ export async function generateSessionWorld(sessionId: string) {
 
   try {
     const catalogScript = findScriptByTheme(session.theme);
+    const roleOptions = getScriptRoleOptions(catalogScript?.id, session.maxPlayers);
     const draft = await generateWorld({
       theme: session.theme,
-      members: members.map(({ name }) => ({ name })),
+      members: members.map((member) => {
+        const selectedRoleId = safeJson<RoleCard | null>(member.roleJson, null)?.roleId;
+        return { name: member.name, selectedRole: roleOptions.find((option) => option.id === selectedRoleId) ?? null };
+      }),
       userId: session.id.replaceAll("-", ""),
       script: catalogScript,
     });
@@ -224,6 +378,8 @@ export async function generateSessionWorld(sessionId: string) {
       stageTask: openingStage.task,
       endingCondition: plan.endingCondition,
       maxTurns: plan.maxTurns,
+      format: catalogScript?.format ?? "合作",
+      victoryRule: catalogScript?.victoryRule ?? "每个人根据自己的私人目标、任务完成度与最终选择独立结算。",
       publicRules: draft.publicRules,
       clues: draft.clues,
       memory: draft.memory,
@@ -234,10 +390,13 @@ export async function generateSessionWorld(sessionId: string) {
     const writes = members.map((member, index) => {
       const role = draft.roles[index];
       return db.update(sessionMembers).set({ roleJson: JSON.stringify({
+        roleId: role.roleId,
         identity: role.identity,
         publicDescription: role.publicDescription,
         secretRule: role.secretRule,
         privateGoal: role.privateGoal,
+        privateTasks: role.privateTasks,
+        survivalCondition: role.survivalCondition,
       }) }).where(eq(sessionMembers.id, member.id));
     });
     await Promise.all(writes.map((write) => write.run()));
@@ -369,6 +528,54 @@ export async function submitChoice(input: {
         createdAt: new Date(now.getTime() + index + 1),
       })];
     });
+    const settlementWrites = turn.ended ? (await Promise.all(members.map(async (settledMember) => {
+      const [profileLink] = await db.select().from(sessionMemberProfiles).where(eq(sessionMemberProfiles.memberId, settledMember.id)).limit(1);
+      if (!profileLink) return [];
+      const [profile] = await db.select().from(playerProfiles).where(eq(playerProfiles.deviceId, profileLink.deviceId)).limit(1);
+      if (!profile) return [];
+      const role = safeJson<RoleCard | null>(settledMember.roleJson, null);
+      const aiResult = turn.results.find((result) => result.playerName === settledMember.name);
+      const completedTasks = (aiResult?.completedTasks ?? []).slice(0, 3);
+      const roleTasks = role?.privateTasks ?? [];
+      const failedTasks = (aiResult?.failedTasks?.length
+        ? aiResult.failedTasks
+        : roleTasks.filter((task) => !completedTasks.includes(task))).slice(0, 3);
+      const survived = aiResult?.survived ?? world.format !== "竞争";
+      const goalCompleted = aiResult?.goalCompleted ?? false;
+      const xpEarned = Math.min(180, 15 + completedTasks.length * 20 + (goalCompleted ? 45 : 0) + (survived ? 35 : 0));
+      const pointsEarned = Math.min(150, completedTasks.length * 10 + (goalCompleted ? 30 : 0) + (survived ? 45 : 0));
+      const nextXp = profile.xp + xpEarned;
+      const result: PlayerEndingResult = {
+        summary: aiResult?.summary || "你走到了这一条因果的结尾，但私人目标没有得到完整确认。",
+        survived,
+        goalCompleted,
+        completedTasks,
+        failedTasks,
+        xpEarned,
+        pointsEarned,
+        levelBefore: levelFromXp(profile.xp),
+        levelAfter: levelFromXp(nextXp),
+      };
+      return [
+        db.insert(sessionResults).values({
+          sessionId: session.id,
+          memberId: settledMember.id,
+          resultJson: JSON.stringify(result),
+          xpEarned,
+          pointsEarned,
+          createdAt: now,
+        }),
+        db.update(playerProfiles).set({
+          displayName: settledMember.name,
+          xp: nextXp,
+          points: profile.points + pointsEarned,
+          gamesPlayed: profile.gamesPlayed + 1,
+          goalsCompleted: profile.goalsCompleted + (goalCompleted ? 1 : 0),
+          wins: profile.wins + (survived ? 1 : 0),
+          updatedAt: now,
+        }).where(eq(playerProfiles.deviceId, profile.deviceId)),
+      ];
+    }))).flat() : [];
     await db.batch([
       db.insert(sessionEntries).values({
         id: crypto.randomUUID(),
@@ -382,6 +589,7 @@ export async function submitChoice(input: {
         createdAt: now,
       }),
       ...privateEntries,
+      ...settlementWrites,
       db.update(sessions).set({
         worldJson: JSON.stringify(nextWorld),
         turn: session.turn + (turn.ended ? 0 : 1),

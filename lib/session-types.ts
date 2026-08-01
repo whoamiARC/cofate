@@ -8,10 +8,43 @@ export type SessionStatus =
   | "error";
 
 export type RoleCard = {
+  roleId?: string;
   identity: string;
   publicDescription: string;
   secretRule: string;
   privateGoal: string;
+  privateTasks?: string[];
+  survivalCondition?: string;
+};
+
+export type RoleOptionView = {
+  id: string;
+  title: string;
+  teaser: string;
+  claimedBy: string | null;
+};
+
+export type PlayerEndingResult = {
+  summary: string;
+  survived: boolean;
+  goalCompleted: boolean;
+  completedTasks: string[];
+  failedTasks: string[];
+  xpEarned: number;
+  pointsEarned: number;
+  levelBefore: number;
+  levelAfter: number;
+};
+
+export type PlayerProfile = {
+  displayName: string;
+  xp: number;
+  points: number;
+  level: number;
+  nextLevelXp: number;
+  gamesPlayed: number;
+  goalsCompleted: number;
+  wins: number;
 };
 
 export type WorldState = {
@@ -23,6 +56,8 @@ export type WorldState = {
   stageTask?: string;
   endingCondition?: string;
   maxTurns?: number;
+  format?: "合作" | "阵营" | "竞争";
+  victoryRule?: string;
   publicRules: string[];
   clues: string[];
   memory: string[];
@@ -35,6 +70,8 @@ export type SessionMemberView = {
   name: string;
   isHost: boolean;
   hasChosen: boolean;
+  selectedRoleId: string | null;
+  roleName: string | null;
 };
 
 export type SessionEntryView = {
@@ -54,10 +91,12 @@ export type SessionView = {
   mode: SessionMode;
   status: SessionStatus;
   maxPlayers: number;
+  requiredPlayers: number | null;
   turn: number;
   errorMessage: string | null;
   members: SessionMemberView[];
-  me: ({ id: string; name: string; isHost: boolean; role: RoleCard | null } | null);
+  me: ({ id: string; name: string; isHost: boolean; role: RoleCard | null; result: PlayerEndingResult | null; profile: PlayerProfile | null } | null);
+  roleOptions: RoleOptionView[];
   world: WorldState | null;
   entries: SessionEntryView[];
 };
