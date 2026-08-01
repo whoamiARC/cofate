@@ -5,7 +5,7 @@ import test from "node:test";
 const templateRoot = new URL("../", import.meta.url);
 
 test("contains the complete CoFate AI social product", async () => {
-  const [app, marketing, layout, deepseek, sessionRoute, manifest, requestGuard] = await Promise.all([
+  const [app, marketing, layout, deepseek, sessionRoute, manifest, requestGuard, scriptCatalog] = await Promise.all([
     readFile(new URL("../app/causality-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/marketing-home.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -13,6 +13,7 @@ test("contains the complete CoFate AI social product", async () => {
     readFile(new URL("../app/api/sessions/[code]/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
     readFile(new URL("../lib/request-guard.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/script-catalog.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(layout, /CoFate 因果/);
@@ -24,14 +25,19 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /邀请二维码/);
   assert.match(app, /QRCodeSVG/);
   assert.match(marketing, /一个二维码/);
-  assert.match(marketing, /下载 Android APK/);
+  assert.match(marketing, /下载安卓版/);
   assert.match(marketing, /Android 公测 APK/);
   assert.match(marketing, /进入网页版世界/);
+  assert.match(marketing, /下载安卓版/);
+  assert.match(marketing, /安装苹果版/);
   assert.doesNotMatch(app, /AppOnlyGate/);
   assert.match(manifest, /"display": "standalone"/);
   assert.doesNotMatch(app, /api\.qrserver\.com/);
   assert.match(deepseek, /deepseek-v4-flash/);
   assert.match(deepseek, /thinking: \{ type: "disabled" \}/);
+  assert.match(deepseek, /mustEnd/);
+  assert.match(scriptCatalog, /endingCondition/);
+  assert.match(scriptCatalog, /第7回合强制结束晚宴/);
   assert.match(sessionRoute, /waitUntil\(generateSessionWorld/);
   assert.match(sessionRoute, /x-player-token/);
   assert.match(requestGuard, /request_limits/);

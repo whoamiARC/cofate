@@ -1411,3 +1411,79 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .room-page .choice-line textarea { min-height:82px;padding:13px 14px;font-size:17px; }
   .room-page .choice-line button { min-height:82px;font-size:16px; }
 }
+
+/* App download choices */
+.site-hero-actions { gap:12px;flex-wrap:wrap; }
+.platform-download-button {
+  position:relative;
+  min-width:220px;
+  min-height:74px;
+  padding:14px 52px 14px 18px;
+  border:1px solid transparent;
+  border-radius:8px;
+  display:grid;
+  align-content:center;
+  justify-items:start;
+  gap:4px;
+  color:var(--site-ink);
+  text-align:left;
+  text-decoration:none;
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+.platform-download-button:hover { transform:translateY(-2px);box-shadow:0 16px 48px rgba(0,0,0,.18); }
+.platform-download-button small { font:8px ui-monospace,SFMono-Regular,monospace;letter-spacing:.13em;opacity:.6; }
+.platform-download-button strong { font-size:17px;letter-spacing:.02em; }
+.platform-download-button > span { position:absolute;right:18px;top:50%;font-size:22px;transform:translateY(-50%); }
+.android-download { background:var(--site-acid); }
+.iphone-download { background:white;border-color:rgba(255,255,255,.28); }
+button.iphone-download { font-family:inherit;cursor:pointer; }
+.hero-web-entry { margin-top:18px;display:inline-block; }
+.download-platform-grid { margin-top:32px;display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:12px; }
+.download-platform-grid .iphone-download { background:var(--site-violet);color:white; }
+.download-web-entry { margin-top:20px;display:inline-block;color:rgba(255,255,255,.62);font-size:12px;text-decoration:none; }
+.install-guide h2 { font-size:36px; }
+.install-steps span { font-size:14px; }
+.install-steps p { font-size:13px; }
+.install-guide > small { font-size:11px;line-height:1.6; }
+
+/* Explicit story phases */
+.stage-objective { margin-top:22px;padding:16px 18px;border:1px solid rgba(216,255,67,.28);border-radius:10px;background:rgba(216,255,67,.08); }
+.stage-objective span { color:var(--acid);font-size:11px;font-weight:800;letter-spacing:.08em; }
+.stage-objective p { margin:8px 0 0;color:#e3e5de;font-size:14px;line-height:1.7; }
+.world-brief .ending-condition { margin-top:14px;padding-top:14px; }
+.world-brief .ending-condition summary { color:#a9a4ff; }
+.world-brief .ending-condition p { margin:10px 0 0;color:#b8bcb2;font-size:12px;line-height:1.7; }
+.ending-card > p { max-width:620px;margin:0 auto 22px;color:var(--muted);font-size:14px;line-height:1.8; }
+
+/* Keep the mobile composer above navigation and the iOS keyboard */
+@media (max-width:860px) {
+  .room-page .story-panel { padding-bottom:calc(106px + env(safe-area-inset-bottom)); }
+  .room-page .choice-dock {
+    position:sticky;
+    left:auto;
+    bottom:calc(82px + env(safe-area-inset-bottom));
+    width:100%;
+    max-height:calc(100dvh - 170px);
+    margin-top:18px;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    transform:none;
+  }
+  .room-page .choice-line { min-width:0; }
+  .room-page .choice-line textarea { width:100%;min-width:0;display:block; }
+}
+
+@media (max-width:720px) {
+  .site-hero-actions { grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; }
+  .platform-download-button { min-width:0;width:100%;min-height:76px;padding-left:14px;padding-right:40px; }
+  .platform-download-button strong { font-size:15px; }
+  .download-platform-grid { grid-template-columns:1fr; }
+}
+
+@media (max-width:560px) {
+  .room-page .story-panel { padding-bottom:calc(106px + env(safe-area-inset-bottom)); }
+  .room-page .choice-line { grid-template-columns:1fr; }
+  .room-page .choice-line textarea { min-height:76px; }
+  .room-page .choice-line button { min-height:56px;width:100%; }
+  .room-page .choice-dock { max-height:calc(100dvh - 155px); }
+}

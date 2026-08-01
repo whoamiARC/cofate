@@ -18,6 +18,11 @@ export type WorldState = {
   title: string;
   premise: string;
   atmosphere: string;
+  scriptId?: string | null;
+  stageTitle?: string;
+  stageTask?: string;
+  endingCondition?: string;
+  maxTurns?: number;
   publicRules: string[];
   clues: string[];
   memory: string[];

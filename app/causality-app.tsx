@@ -513,12 +513,12 @@ function Room(props: {
                 <div id="story-end" />
               </div>
               {session.status !== "ended" && <form className="choice-dock" onSubmit={props.onSubmit}>
-                <div className="choice-status"><span>第 {session.turn} 回合</span><small>{props.meChosen ? `已提交 · ${props.choicesCount}/${session.members.length} 人完成` : session.world?.nextPrompt}</small></div>
+                <div className="choice-status"><span>第 {session.turn}{session.world?.maxTurns ? ` / ${session.world.maxTurns}` : ""} 回合{session.world?.stageTitle ? ` · ${session.world.stageTitle}` : ""}</span><small>{props.meChosen ? `已提交 · ${props.choicesCount}/${session.members.length} 人完成` : session.world?.nextPrompt}</small></div>
                 {!props.meChosen && session.world?.suggestedChoices?.length ? <div className="suggestions">{session.world.suggestedChoices.map((item) => <button type="button" onClick={() => props.onChoice(item)} key={item}>{item}</button>)}</div> : null}
                 <div className="choice-line"><textarea value={props.choice} onChange={(event) => props.onChoice(event.target.value)} disabled={props.meChosen || props.busy || session.status === "resolving"} maxLength={360} rows={2} placeholder={props.meChosen ? "等待其他人的选择…" : "写下你真正想做的事，也可以先和身边的人讨论"} /><button disabled={props.meChosen || props.busy || !props.choice.trim() || session.status === "resolving"}>{props.busy ? "…" : "提交"}</button></div>
                 {props.error && <small className="error-text">{props.error}</small>}
               </form>}
-              {session.status === "ended" && <div className="ending-card"><span>THE END</span><h2>这一条因果已经闭合。</h2><button onClick={props.onBack}>回到入口</button></div>}
+              {session.status === "ended" && <div className="ending-card"><span>THE END · {session.turn} 回合</span><h2>这一条因果已经闭合。</h2>{session.world?.endingCondition && <p>{session.world.endingCondition}</p>}<button onClick={props.onBack}>回到入口</button></div>}
             </>
           ) : (
             <div className="error-state"><span>世界停在了门外</span><p>{session.errorMessage || props.error || "生成过程中发生了意外。"}</p>{session.me.isHost && <button className="primary-button" onClick={props.onStart} disabled={props.busy}>{props.busy ? "正在重试…" : "重新生成世界"}</button>}</div>
@@ -538,7 +538,7 @@ function Lobby({ session, busy, error, onStart, onInvite }: { session: SessionVi
 
 function WorldBrief({ session }: { session: SessionView }) {
   const world = session.world!;
-  return <div className="world-brief"><p className="eyebrow">CURRENT WORLD · TURN {session.turn}</p><h1>{world.title}</h1><p className="premise">{world.premise}</p><details open><summary>当前公开规则 · {world.publicRules.length}</summary><ol>{world.publicRules.map((rule, index) => <li key={`${rule}-${index}`}>{rule}</li>)}</ol></details>{world.clues.length > 0 && <div className="clue-line"><span>已知线索</span><p>{world.clues.join(" · ")}</p></div>}</div>;
+  return <div className="world-brief"><p className="eyebrow">CURRENT WORLD · TURN {session.turn}{world.maxTurns ? ` / ${world.maxTurns}` : ""}</p><h1>{world.title}</h1><p className="premise">{world.premise}</p>{world.stageTask && <div className="stage-objective"><span>{world.stageTitle || "当前任务"}</span><p>{world.stageTask}</p></div>}<details open><summary>当前公开规则 · {world.publicRules.length}</summary><ol>{world.publicRules.map((rule, index) => <li key={`${rule}-${index}`}>{rule}</li>)}</ol></details>{world.clues.length > 0 && <div className="clue-line"><span>已知线索</span><p>{world.clues.join(" · ")}</p></div>}{world.endingCondition && <details className="ending-condition"><summary>本局终止条件</summary><p>{world.endingCondition}</p></details>}</div>;
 }
 
 function RoleCard({ role }: { role: NonNullable<SessionView["me"]>["role"] }) {
@@ -562,7 +562,7 @@ function AppSplash() {
 }
 
 function ScriptCard({ script, onOpen, featured = false }: { script: ScriptCatalogItem; onOpen: (script: ScriptCatalogItem) => void; featured?: boolean }) {
-  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art"><span>{script.mark}</span><i /><i /></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><small>{script.duration} <i>→</i></small></div></button>;
+  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art"><span>{script.mark}</span><i /><i /></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><small>{script.duration} · {script.plan.maxTurns} 回合 <i>→</i></small></div></button>;
 }
 
 function PurchaseSheet({ item, onClose }: { item: PaywallItem; onClose: () => void }) {

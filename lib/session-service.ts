@@ -3,6 +3,7 @@ import { waitUntil } from "cloudflare:workers";
 import { ensureSchema, getDb } from "../db";
 import { sessionEntries, sessionMembers, sessions } from "../db/schema";
 import { advanceWorld, generateWorld } from "./deepseek";
+import { findScriptByTheme, getScriptPlan, getScriptStage } from "./script-catalog";
 import type {
   RoleCard,
   SessionMode,
@@ -205,15 +206,24 @@ export async function generateSessionWorld(sessionId: string) {
   if (members.length < 2) throw new Error("至少需要两个人，世界才会显现。");
 
   try {
+    const catalogScript = findScriptByTheme(session.theme);
     const draft = await generateWorld({
       theme: session.theme,
       members: members.map(({ name }) => ({ name })),
       userId: session.id.replaceAll("-", ""),
+      script: catalogScript,
     });
+    const plan = catalogScript?.plan ?? getScriptPlan(null);
+    const openingStage = getScriptStage(catalogScript?.id, 1);
     const world: WorldState = {
       title: draft.title,
       premise: draft.premise,
       atmosphere: draft.atmosphere,
+      scriptId: catalogScript?.id ?? null,
+      stageTitle: openingStage.title,
+      stageTask: openingStage.task,
+      endingCondition: plan.endingCondition,
+      maxTurns: plan.maxTurns,
       publicRules: draft.publicRules,
       clues: draft.clues,
       memory: draft.memory,
@@ -337,6 +347,12 @@ export async function submitChoice(input: {
       nextPrompt: turn.nextPrompt,
       suggestedChoices: turn.suggestedChoices,
     };
+    const nextTurnNumber = session.turn + (turn.ended ? 0 : 1);
+    const nextStage = getScriptStage(world.scriptId, nextTurnNumber);
+    nextWorld.stageTitle = nextStage.title;
+    nextWorld.stageTask = nextStage.task;
+    nextWorld.endingCondition = getScriptPlan(world.scriptId).endingCondition;
+    nextWorld.maxTurns = getScriptPlan(world.scriptId).maxTurns;
     const now = new Date();
     const privateEntries = turn.privateEchoes.flatMap((echo, index) => {
       const target = members.find((item) => item.name === echo.playerName) ?? members[index];

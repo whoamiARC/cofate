@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { InstallAppButton } from "./install-app";
 
 const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.4.apk";
 
@@ -82,13 +83,16 @@ export function MarketingHome() {
               每个人获得只有自己知道的身份、规则与目标。AI 让世界持续生长，真人的每一次选择，让彼此产生因果。
             </p>
             <div className="site-hero-actions">
-              <a className="site-primary-cta" href="/app">
-                进入网页版世界 <span>↗</span>
+              <a className="platform-download-button android-download" href={ANDROID_APK_PATH} download>
+                <small>ANDROID</small><strong>下载安卓版</strong><span>↓</span>
               </a>
-              <a className="site-text-link" href="#download">查看安装方式 <span>↘</span></a>
+              <InstallAppButton className="platform-download-button iphone-download">
+                <small>IPHONE</small><strong>安装苹果版</strong><span>↗</span>
+              </InstallAppButton>
             </div>
+            <a className="site-text-link hero-web-entry" href="/app">无需下载，直接进入网页版世界 <span>↗</span></a>
             <div className="site-platforms">
-              <span>Android 7+</span><i /> <span>公测版 v0.1.4</span><i /> <span>约 5 MB</span><i /> <span>iPhone 版筹备中</span>
+              <span>Android 7+</span><i /> <span>公测版 v0.1.4</span><i /> <span>约 5 MB</span><i /> <span>iPhone · Safari 安装</span>
             </div>
           </div>
           <WorldPortal />
@@ -213,11 +217,16 @@ export function MarketingHome() {
         <div className="download-copy">
           <p className="site-kicker">YOUR NEXT STORY IS WAITING</p>
           <h2>下一段因果，<br />从你发出邀请开始。</h2>
-          <p>Android APP 与网页版现已同时开放。无需安装也可以直接进入世界，手机用户也可下载完整 APP。</p>
-          <div className="download-actions">
-            <a className="download-button" href="/app">进入网页版 <span>↗</span></a>
-            <a href={ANDROID_APK_PATH} download>下载 Android APK ↓</a>
+          <p>Android 安装包和 iPhone 桌面公测版现已同时开放。iPhone 使用 Safari 添加到主屏幕后，可像普通 APP 一样全屏打开。</p>
+          <div className="download-platform-grid">
+            <a className="platform-download-button android-download" href={ANDROID_APK_PATH} download>
+              <small>ANDROID 7+</small><strong>下载安卓版</strong><span>↓</span>
+            </a>
+            <InstallAppButton className="platform-download-button iphone-download">
+              <small>IPHONE / IPAD</small><strong>安装苹果版</strong><span>↗</span>
+            </InstallAppButton>
           </div>
+          <a className="download-web-entry" href="/app">直接使用网页版 →</a>
         </div>
         <div className="download-qr">
           <div><QRCodeSVG value={downloadUrl} size={220} level="M" marginSize={2} /></div>
