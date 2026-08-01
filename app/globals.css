@@ -1263,7 +1263,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .match-strip span { display:grid;gap:4px; }.match-strip small { color:#8f9488;font-size:9px; }.match-strip strong { font-size:14px; }.match-strip > b { color:var(--acid);font-size:20px; }
 .script-library > h1 { margin:12px 0 22px;font:42px Georgia,"Songti SC",serif;font-weight:400; }
 .category-tabs { margin-bottom:20px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none; }
-.category-tabs button { flex:0 0 auto;padding:10px 15px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.45);color:#6e7367;font-size:11px; }
+.category-tabs button { flex:0 0 auto;padding:11px 17px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.45);color:#6e7367;font-size:14px; }
 .category-tabs button.selected { background:var(--ink);color:var(--acid); }
 .app-bottom-nav button,.room-bottom-nav button { font-size:10px; }
 .app-bottom-nav button span,.room-bottom-nav button span { font-size:22px; }

@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { SessionEntryView, SessionView } from "../lib/session-types";
-import { SCRIPT_CATALOG, type ScriptCatalogItem } from "../lib/script-catalog";
+import { SCRIPT_CATALOG, SCRIPT_CATEGORIES, type ScriptCatalogItem } from "../lib/script-catalog";
 
 const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.4.apk";
 
@@ -374,8 +374,8 @@ export function CausalityApp() {
         <AppTopBar isNativeApp={isNativeApp} quota={quota} />
         <section className="script-library app-screen-scroll">
           <p className="eyebrow">ALL COFATE STORIES</p>
-          <h1>全部剧本</h1>
-          <div className="category-tabs">{["全部", "聚会", "双人", "都市", "校园", "轻悬疑"].map((category) => <button className={activeCategory === category ? "selected" : ""} onClick={() => setActiveCategory(category)} key={category}>{category}</button>)}</div>
+          <h1>{SCRIPT_CATALOG.length} 个剧本</h1>
+          <div className="category-tabs">{["全部", ...SCRIPT_CATEGORIES].map((category) => <button className={activeCategory === category ? "selected" : ""} onClick={() => setActiveCategory(category)} key={category}>{category}</button>)}</div>
           <div className="script-card-grid">
             {filteredScripts.map((script) => <ScriptCard script={script} onOpen={openScript} key={script.id} />)}
           </div>

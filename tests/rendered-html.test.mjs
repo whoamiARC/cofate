@@ -38,6 +38,16 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(deepseek, /mustEnd/);
   assert.match(scriptCatalog, /endingCondition/);
   assert.match(scriptCatalog, /第7回合强制结束晚宴/);
+  assert.equal((scriptCatalog.match(/\{ id: "/g) ?? []).length, 32);
+  assert.match(scriptCatalog, /category: "科幻"/);
+  assert.match(scriptCatalog, /category: "奇幻"/);
+  assert.match(scriptCatalog, /category: "古风"/);
+  assert.match(scriptCatalog, /category: "末日"/);
+  assert.match(scriptCatalog, /category: "情感"/);
+  assert.match(scriptCatalog, /category: "喜剧"/);
+  assert.match(scriptCatalog, /category: "推理"/);
+  assert.match(scriptCatalog, /category: "冒险"/);
+  assert.match(deepseek, /不要把非悬疑题材强行写成恐怖或规则怪谈/);
   assert.match(sessionRoute, /waitUntil\(generateSessionWorld/);
   assert.match(sessionRoute, /x-player-token/);
   assert.match(requestGuard, /request_limits/);
