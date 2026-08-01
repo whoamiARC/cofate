@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { PlayerProfile, SessionEntryView, SessionView } from "../lib/session-types";
-import { SCRIPT_CATALOG, SCRIPT_CATEGORIES, type ScriptCatalogItem } from "../lib/script-catalog";
+import { getScriptCover, getScriptMechanics, SCRIPT_CATALOG, SCRIPT_CATEGORIES, type ScriptCatalogItem } from "../lib/script-catalog";
 
 const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.4.apk";
 
@@ -338,6 +338,28 @@ export function CausalityApp() {
     }
   }
 
+  async function sendWhisperMessage(targetMemberId: string, content: string) {
+    if (!playerToken || !targetMemberId || !content.trim() || busy) return false;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/sessions/${encodeURIComponent(roomCode)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-player-token": playerToken },
+        body: JSON.stringify({ action: "whisper", targetMemberId, content }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(data.error || "密语发送失败");
+      await loadSession(roomCode, playerToken, true);
+      return true;
+    } catch (whisperError) {
+      setError(whisperError instanceof Error ? whisperError.message : "密语发送失败");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function copyInvite() {
     try {
       await navigator.clipboard.writeText(inviteUrl);
@@ -373,7 +395,7 @@ export function CausalityApp() {
               <fieldset>
                 <legend>参与人数</legend>
                 <div className="count-picker">
-                  {[2, 3, 4, 5, 6, 8].map((count) => <button type="button" className={maxPlayers === count ? "selected" : ""} onClick={() => setMaxPlayers(count)} key={count}>{count}</button>)}
+                  {[1, 2, 3, 4, 5, 6, 8].map((count) => <button type="button" className={maxPlayers === count ? "selected" : ""} onClick={() => setMaxPlayers(count)} key={count}>{count === 1 ? "单人" : count}</button>)}
                 </div>
               </fieldset>
             )}
@@ -461,6 +483,7 @@ export function CausalityApp() {
         onJoin={joinSession}
         onStart={startWorld}
         onSelectRole={selectRole}
+        onWhisper={sendWhisperMessage}
         onSubmit={sendChoice}
         onBack={goHome}
         onInvite={() => setInviteOpen(true)}
@@ -478,6 +501,8 @@ export function CausalityApp() {
         <div className="store-quick-actions"><button className="custom-world-card" onClick={openCustomWorld}><span>AI 自定义</span><strong>写一句话，生成你的剧本</strong><p>今日免费额度 <b>{quota.remaining} / {quota.limit}</b></p><i>＋</i></button><button className="invite-entry-card" onClick={() => { setError(""); setView("join"); }}><span>#</span><strong>输入邀请码</strong><p>进入朋友的世界</p></button></div>
         <div className="store-section-title"><div><p className="eyebrow">FEATURED TONIGHT</p><h2>今晚精选</h2></div><button onClick={() => setView("discover")}>查看全部 →</button></div>
         <div className="featured-script-row">{SCRIPT_CATALOG.filter((script) => script.featured).map((script) => <ScriptCard script={script} onOpen={openScript} featured key={script.id} />)}</div>
+        <div className="store-section-title solo-section-title"><div><p className="eyebrow">PLAY ALONE · NEVER EMPTY</p><h2>一个人，也能进入世界</h2></div></div>
+        <div className="script-card-grid solo-script-grid">{SCRIPT_CATALOG.filter((script) => script.playerCount === 1).map((script) => <ScriptCard script={script} onOpen={openScript} key={script.id} />)}</div>
         <div className="store-section-title"><div><p className="eyebrow">FREE TO PLAY</p><h2>免费开局</h2></div></div>
         <div className="script-card-grid compact">{SCRIPT_CATALOG.filter((script) => script.price === 0).slice(0, 6).map((script) => <ScriptCard script={script} onOpen={openScript} key={script.id} />)}</div>
         <button className="match-strip" onClick={() => { setError(""); setTheme("两个陌生人在深夜收到同一份规则"); setView("match"); }}><i /> <span><small>一个人也可以</small><strong>匹配此刻在线的真人</strong></span><b>→</b></button>
@@ -505,6 +530,7 @@ function Room(props: {
   onJoin: (event: FormEvent) => void;
   onStart: () => void;
   onSelectRole: (roleId: string) => void;
+  onWhisper: (targetMemberId: string, content: string) => Promise<boolean>;
   onSubmit: (event: FormEvent) => void;
   onBack: () => void;
   onInvite: () => void;
@@ -513,16 +539,19 @@ function Room(props: {
 }) {
   const { session } = props;
   const [roomTab, setRoomTab] = useState<"story" | "role" | "people">("story");
+  const [whisperTarget, setWhisperTarget] = useState("");
+  const [whisperText, setWhisperText] = useState("");
   if (!session) return <main className="room-page"><Header onBack={props.onBack} label="正在连接" /><div className="loading-state"><span>因</span><p>正在寻找这个世界的入口…</p>{props.error && <small>{props.error}</small>}</div></main>;
   const waiting = session.status === "waiting";
   const generating = session.status === "generating";
   const active = session.status === "active" || session.status === "resolving" || session.status === "ended";
+  const otherMembers = session.members.filter((member) => member.id !== session.me?.id);
   return (
     <main className="room-page">
       <header className="room-header">
         <button className="round-button" onClick={props.onBack} aria-label="返回">←</button>
         <div><strong>{session.title}</strong><span>#{session.code} · {statusText(session.status)}</span></div>
-        {session.mode === "private" ? <button className="invite-button" onClick={props.onInvite}>邀请</button> : <span className="match-tag">匹配局</span>}
+        {session.mode === "private" && session.requiredPlayers !== 1 ? <button className="invite-button" onClick={props.onInvite}>邀请</button> : session.requiredPlayers === 1 ? <span className="match-tag">独行局</span> : <span className="match-tag">匹配局</span>}
       </header>
       <div className={`room-layout mobile-tab-${roomTab}`}>
         <aside className="room-sidebar">
@@ -532,6 +561,7 @@ function Room(props: {
               {session.members.map((member) => <div className="member" key={member.id}><b>{playerMark(member.name)}</b><span>{member.name}{member.isHost ? " · 房主" : ""}<small>{waiting ? member.roleName || "尚未选择角色" : member.hasChosen ? "已提交私密行动" : member.roleName || "已进入"}</small></span>{member.hasChosen && <i>✓</i>}</div>)}
             </div>
           </div>
+          {active && session.status !== "ended" && otherMembers.length > 0 && <form className="whisper-composer" onSubmit={async (event) => { event.preventDefault(); const sent = await props.onWhisper(whisperTarget, whisperText); if (sent) setWhisperText(""); }}><span>匿名密语</span><p>只有你和对方能看到，AI 会感知这次交流。</p><select value={whisperTarget} onChange={(event) => setWhisperTarget(event.target.value)} aria-label="选择密语对象"><option value="">选择一个人</option>{otherMembers.map((member) => <option value={member.id} key={member.id}>{member.name} · {member.roleName || "未知角色"}</option>)}</select><textarea value={whisperText} onChange={(event) => setWhisperText(event.target.value)} maxLength={180} rows={3} placeholder="结盟、试探、交换线索，或者说一个假消息……" /><button disabled={props.busy || !whisperTarget || !whisperText.trim()}>发送密语</button></form>}
           {active && session.me?.role && <RoleCard role={session.me.role} />}
         </aside>
         <section className="story-panel">
@@ -546,7 +576,7 @@ function Room(props: {
           ) : waiting ? (
             <Lobby session={session} busy={props.busy} error={props.error} onStart={props.onStart} onInvite={props.onInvite} onSelectRole={props.onSelectRole} />
           ) : generating ? (
-            <div className="generating-state"><div className="signal-rings"><i /><i /><span>因</span></div><p>DeepSeek 正在读取所有人的名字</p><h2>世界正在生成</h2><small>它会分别写下身份、秘密规则和彼此交叉的命运。</small></div>
+            <div className="generating-state"><div className="signal-rings"><i /><i /><span>因</span></div><p>DeepSeek 正在读取{session.requiredPlayers === 1 ? "你的角色" : "所有人的名字"}</p><h2>世界正在生成</h2><small>{session.requiredPlayers === 1 ? "它会唤醒会回应你的剧情角色，并写下独属于你的目标。" : "它会分别写下身份、秘密规则和彼此交叉的命运。"}</small></div>
           ) : active ? (
             <>
               {session.world && <WorldBrief session={session} />}
@@ -588,12 +618,13 @@ function Lobby({ session, busy, error, onStart, onInvite, onSelectRole }: { sess
       : !allRolesSelected
         ? "等待所有人选择角色"
         : "角色就位，开启世界";
-  return <div className="lobby-state role-lobby"><div className="lobby-orbit"><span>{session.members.length}</span><i /></div><p className="eyebrow">{isMatch ? "MATCHING SIGNAL" : "CHOOSE YOUR ROLE"}</p><h1>{isMatch ? "正在寻找另一个此刻仍醒着的人" : "先选择你要成为谁"}</h1><p>{isMatch ? "可以把页面放在这里。有人回应后，因果会自动生成你们的共同世界。" : session.requiredPlayers ? `这是固定 ${session.requiredPlayers} 人本。角色名称公开，秘密目标和任务仅本人可见。` : `已有 ${session.members.length} 人到场，最多 ${session.maxPlayers} 人。每个人先选择不同角色。`}</p>{!isMatch && <div className="role-option-grid">{session.roleOptions.map((role) => { const mine = myMember?.selectedRoleId === role.id; const unavailable = Boolean(role.claimedBy && !mine); return <button type="button" className={mine ? "selected" : ""} disabled={busy || unavailable} onClick={() => onSelectRole(role.id)} key={role.id}><span>{mine ? "你的角色" : role.claimedBy ? `${role.claimedBy} 已选择` : "可选择"}</span><strong>{role.title}</strong><p>{role.teaser}</p></button>; })}</div>}{!isMatch && <button className="secondary-button" onClick={onInvite}>打开邀请二维码 · 邀请其他角色</button>}{session.me?.isHost && !isMatch && <button className="primary-button" disabled={busy || !ready} onClick={onStart}>{startLabel}</button>}{error && <small className="error-text">{error}</small>}</div>;
+  const solo = session.requiredPlayers === 1;
+  return <div className="lobby-state role-lobby"><div className="lobby-orbit"><span>{session.members.length}</span><i /></div><p className="eyebrow">{isMatch ? "MATCHING SIGNAL" : solo ? "SOLO ROLE" : "CHOOSE YOUR ROLE"}</p><h1>{isMatch ? "正在寻找另一个此刻仍醒着的人" : solo ? "选择你要独自成为的人" : "先选择你要成为谁"}</h1><p>{isMatch ? "可以把页面放在这里。有人回应后，因果会自动生成你们的共同世界。" : solo ? "这是单人沉浸本。AI 剧情角色会主动回应你，但所有决定都由你自己做出。" : session.requiredPlayers ? `这是固定 ${session.requiredPlayers} 人本。角色名称公开，秘密目标和任务仅本人可见。` : `已有 ${session.members.length} 人到场，最多 ${session.maxPlayers} 人。每个人先选择不同角色。`}</p>{!isMatch && <div className="role-option-grid">{session.roleOptions.map((role) => { const mine = myMember?.selectedRoleId === role.id; const unavailable = Boolean(role.claimedBy && !mine); return <button type="button" className={mine ? "selected" : ""} disabled={busy || unavailable} onClick={() => onSelectRole(role.id)} key={role.id}><span>{mine ? "你的角色" : role.claimedBy ? `${role.claimedBy} 已选择` : "可选择"}</span><strong>{role.title}</strong><p>{role.teaser}</p></button>; })}</div>}{!isMatch && !solo && <button className="secondary-button" onClick={onInvite}>打开邀请二维码 · 邀请其他角色</button>}{session.me?.isHost && !isMatch && <button className="primary-button" disabled={busy || !ready} onClick={onStart}>{startLabel}</button>}{error && <small className="error-text">{error}</small>}</div>;
 }
 
 function WorldBrief({ session }: { session: SessionView }) {
   const world = session.world!;
-  return <div className="world-brief"><p className="eyebrow">CURRENT WORLD · TURN {session.turn}{world.maxTurns ? ` / ${world.maxTurns}` : ""}</p><h1>{world.title}</h1>{world.format && <span className={`story-format format-${world.format}`}>{world.format}本</span>}<p className="premise">{world.premise}</p>{world.victoryRule && <div className="victory-rule"><span>胜负规则</span><p>{world.victoryRule}</p></div>}{world.stageTask && <div className="stage-objective"><span>{world.stageTitle || "当前任务"}</span><p>{world.stageTask}</p></div>}<details open><summary>当前公开规则 · {world.publicRules.length}</summary><ol>{world.publicRules.map((rule, index) => <li key={`${rule}-${index}`}>{rule}</li>)}</ol></details>{world.clues.length > 0 && <div className="clue-line"><span>已知线索</span><p>{world.clues.join(" · ")}</p></div>}{world.endingCondition && <details className="ending-condition"><summary>本局终止条件</summary><p>{world.endingCondition}</p></details>}</div>;
+  return <div className="world-brief"><p className="eyebrow">CURRENT WORLD · TURN {session.turn}{world.maxTurns ? ` / ${world.maxTurns}` : ""}</p><h1>{world.title}</h1>{world.format && <span className={`story-format format-${world.format}`}>{world.format}本</span>}<p className="premise">{world.premise}</p>{world.mechanics?.length ? <div className="world-mechanics">{world.mechanics.map((mechanic) => <span key={mechanic}>{mechanic}</span>)}</div> : null}{world.victoryRule && <div className="victory-rule"><span>胜负规则</span><p>{world.victoryRule}</p></div>}{world.stageTask && <div className="stage-objective"><span>{world.stageTitle || "当前任务"}</span><p>{world.stageTask}</p></div>}<details open><summary>当前公开规则 · {world.publicRules.length}</summary><ol>{world.publicRules.map((rule, index) => <li key={`${rule}-${index}`}>{rule}</li>)}</ol></details>{world.clues.length > 0 && <div className="clue-line"><span>已知线索</span><p>{world.clues.join(" · ")}</p></div>}{world.endingCondition && <details className="ending-condition"><summary>本局终止条件</summary><p>{world.endingCondition}</p></details>}</div>;
 }
 
 function RoleCard({ role }: { role: NonNullable<SessionView["me"]>["role"] }) {
@@ -609,7 +640,7 @@ function EndingCard({ session, onBack }: { session: SessionView; onBack: () => v
 function StoryEntry({ entry, meId }: { entry: SessionEntryView; meId: string }) {
   if (entry.kind === "system" || entry.kind === "arrival") return <div className="system-entry"><span>因</span><p>{entry.content}</p></div>;
   if (entry.kind === "narration") return <article className="narration-entry"><header><span>因果 · 第 {entry.turn} 回合</span><time>{timeLabel(entry.createdAt)}</time></header><p>{entry.content}</p></article>;
-  if (entry.kind === "private") return <article className="private-entry"><span>只有你听见</span><p>{entry.content}</p></article>;
+  if (entry.kind === "private") return <article className="private-entry"><span>{entry.author.includes("密语") ? entry.author : "只有你听见"}</span><p>{entry.content}</p></article>;
   return <div className={`choice-entry ${entry.memberId === meId ? "mine" : ""}`}><span>{entry.author} 的选择 · {timeLabel(entry.createdAt)}</span><p>{entry.content}</p></div>;
 }
 
@@ -622,7 +653,8 @@ function AppSplash() {
 }
 
 function ScriptCard({ script, onOpen, featured = false }: { script: ScriptCatalogItem; onOpen: (script: ScriptCatalogItem) => void; featured?: boolean }) {
-  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.format ?? "合作"}本，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art"><span>{script.mark}</span><i /><i /></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><small>{script.format ?? "合作"} · {script.duration} · {script.plan.maxTurns} 回合 <i>→</i></small></div></button>;
+  const mechanics = getScriptMechanics(script.id).slice(0, 2);
+  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.format ?? "合作"}本，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art" style={{ backgroundImage: `linear-gradient(180deg,transparent 35%,rgba(9,11,8,.78)),url(${getScriptCover(script.id)})` }}><span className="cover-mode">{script.playerCount === 1 ? "SOLO" : script.format ?? "合作"}</span></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><div className="mechanic-tags">{mechanics.map((mechanic) => <span key={mechanic}>{mechanic}</span>)}</div><small>{script.format ?? "合作"} · {script.duration} · {script.plan.maxTurns} 回合 <i>→</i></small></div></button>;
 }
 
 function PurchaseSheet({ item, onClose }: { item: PaywallItem; onClose: () => void }) {

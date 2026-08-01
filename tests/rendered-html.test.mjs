@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 const templateRoot = new URL("../", import.meta.url);
@@ -40,7 +40,9 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(deepseek, /mustEnd/);
   assert.match(scriptCatalog, /endingCondition/);
   assert.match(scriptCatalog, /第7回合强制结束晚宴/);
-  assert.equal((scriptCatalog.match(/\bcategory: "(?:聚会|双人|都市|校园|轻悬疑|推理|科幻|奇幻|古风|末日|情感|喜剧|冒险)"/g) ?? []).length, 35);
+  assert.equal((scriptCatalog.match(/\bcategory: "(?:单人|聚会|双人|都市|校园|轻悬疑|推理|科幻|奇幻|古风|末日|情感|喜剧|冒险)"/g) ?? []).length, 38);
+  assert.match(scriptCatalog, /category: "单人"/);
+  assert.match(scriptCatalog, /只向明天亮起的灯塔/);
   assert.match(scriptCatalog, /category: "科幻"/);
   assert.match(scriptCatalog, /category: "奇幻"/);
   assert.match(scriptCatalog, /category: "古风"/);
@@ -55,6 +57,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(scriptCatalog, /固定 4 人/);
   assert.match(app, /私密行动/);
   assert.match(app, /选择你要成为谁/);
+  assert.match(app, /匿名密语/);
+  assert.match(app, /getScriptCover/);
   assert.match(sessionService, /entry\.kind === "choice"/);
   assert.match(sessionService, /sessionResults/);
   assert.match(schema, /player_profiles/);
@@ -62,6 +66,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(sessionRoute, /x-player-token/);
   assert.match(requestGuard, /request_limits/);
   assert.match(requestGuard, /status: 429/);
+  const covers = (await readdir(new URL("../public/covers/", import.meta.url))).filter((file) => file.endsWith(".webp"));
+  assert.equal(covers.length, 38);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
   await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.4.apk", templateRoot));
 });

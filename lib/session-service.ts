@@ -3,7 +3,7 @@ import { waitUntil } from "cloudflare:workers";
 import { ensureSchema, getDb } from "../db";
 import { playerProfiles, sessionEntries, sessionMemberProfiles, sessionMembers, sessionResults, sessionRoleClaims, sessions } from "../db/schema";
 import { advanceWorld, generateWorld } from "./deepseek";
-import { findScriptByTheme, getScriptPlan, getScriptRoleOptions, getScriptStage } from "./script-catalog";
+import { findScriptByTheme, getScriptMechanics, getScriptPlan, getScriptRoleOptions, getScriptStage } from "./script-catalog";
 import type {
   PlayerEndingResult,
   PlayerProfile,
@@ -91,7 +91,7 @@ export async function createSession(input: {
       theme: input.theme.trim().slice(0, 300) || "熟悉空间里悄然改变的规则",
       mode: input.mode,
       status: "waiting",
-      maxPlayers: Math.max(2, Math.min(input.maxPlayers, 8)),
+      maxPlayers: Math.max(1, Math.min(input.maxPlayers, 8)),
       hostMemberId: memberId,
       worldJson: null,
       turn: 0,
@@ -257,7 +257,8 @@ export async function sessionStartError(sessionId: string) {
   if (script?.playerCount && members.length !== script.playerCount) {
     return `这是固定 ${script.playerCount} 人本，需要所有角色到齐`;
   }
-  if (members.length < 2) return "至少等一个人到场，再开启世界";
+  const minimumPlayers = script?.playerCount ?? (session.maxPlayers === 1 ? 1 : 2);
+  if (members.length < minimumPlayers) return minimumPlayers === 1 ? null : "至少等一个人到场，再开启世界";
   if (session.mode !== "match" && session.status === "waiting" && members.some((member) => !safeJson<RoleCard | null>(member.roleJson, null)?.roleId)) {
     return "每个人都选择角色后才能开局";
   }
@@ -284,7 +285,10 @@ export async function getSessionView(code: string, playerToken: string): Promise
       .map((entry) => entry.memberId)
   );
   const visibleEntries = allEntries.filter((entry) => {
-    if (entry.kind === "private") return entry.memberId === me?.id;
+    if (entry.kind === "private") {
+      const meta = safeJson<{ senderMemberId?: string }>(entry.metaJson, {});
+      return entry.memberId === me?.id || meta.senderMemberId === me?.id;
+    }
     if (entry.kind === "choice") return entry.memberId === me?.id;
     return true;
   });
@@ -353,10 +357,11 @@ export async function generateSessionWorld(sessionId: string) {
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
   if (!session) throw new Error("世界不存在");
   const members = await db.select().from(sessionMembers).where(eq(sessionMembers.sessionId, session.id)).orderBy(asc(sessionMembers.joinedAt));
-  if (members.length < 2) throw new Error("至少需要两个人，世界才会显现。");
+  const catalogScript = findScriptByTheme(session.theme);
+  const minimumPlayers = catalogScript?.playerCount ?? (session.maxPlayers === 1 ? 1 : 2);
+  if (members.length < minimumPlayers) throw new Error(minimumPlayers === 1 ? "还没有找到独行者。" : "至少需要两个人，世界才会显现。");
 
   try {
-    const catalogScript = findScriptByTheme(session.theme);
     const roleOptions = getScriptRoleOptions(catalogScript?.id, session.maxPlayers);
     const draft = await generateWorld({
       theme: session.theme,
@@ -378,8 +383,11 @@ export async function generateSessionWorld(sessionId: string) {
       stageTask: openingStage.task,
       endingCondition: plan.endingCondition,
       maxTurns: plan.maxTurns,
-      format: catalogScript?.format ?? "合作",
+      format: catalogScript?.format ?? (session.maxPlayers === 1 ? "独行" : "合作"),
       victoryRule: catalogScript?.victoryRule ?? "每个人根据自己的私人目标、任务完成度与最终选择独立结算。",
+      mechanics: session.maxPlayers === 1 && !catalogScript
+        ? ["AI 角色对话", "状态抉择", "多结局收藏"]
+        : getScriptMechanics(catalogScript?.id),
       publicRules: draft.publicRules,
       clues: draft.clues,
       memory: draft.memory,
@@ -426,6 +434,37 @@ export async function generateSessionWorld(sessionId: string) {
     await db.update(sessions).set({ status: "error", errorMessage: message, updatedAt: new Date() }).where(eq(sessions.id, session.id));
     throw error;
   }
+}
+
+export async function sendWhisper(input: {
+  sessionId: string;
+  senderMemberId: string;
+  targetMemberId: string;
+  content: string;
+}) {
+  const db = getDb();
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, input.sessionId)).limit(1);
+  if (!session || (session.status !== "active" && session.status !== "resolving")) {
+    throw new Error("只有世界进行中才能发送密语");
+  }
+  if (input.senderMemberId === input.targetMemberId) throw new Error("不能给自己发送密语");
+  const members = await db.select().from(sessionMembers).where(eq(sessionMembers.sessionId, session.id));
+  const sender = members.find((member) => member.id === input.senderMemberId);
+  const target = members.find((member) => member.id === input.targetMemberId);
+  if (!sender || !target) throw new Error("密语对象已经不在这个世界");
+  const content = input.content.trim().slice(0, 180);
+  if (!content) throw new Error("先写下要发送的密语");
+  await db.insert(sessionEntries).values({
+    id: crypto.randomUUID(),
+    sessionId: session.id,
+    memberId: target.id,
+    turn: session.turn,
+    kind: "private",
+    author: `${sender.name} · 密语`,
+    content,
+    metaJson: JSON.stringify({ type: "whisper", senderMemberId: sender.id, targetMemberId: target.id }),
+    createdAt: new Date(),
+  });
 }
 
 export async function submitChoice(input: {

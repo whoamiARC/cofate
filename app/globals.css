@@ -1239,11 +1239,10 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .script-card-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:12px; }
 .script-card { padding:0;overflow:hidden;border:1px solid rgba(31,35,25,.12);border-radius:22px;background:rgba(255,255,255,.66);color:var(--ink);text-align:left;box-shadow:0 18px 50px rgba(29,33,23,.06);transition:transform .18s ease,box-shadow .18s ease; }
 .script-card:active { transform:scale(.975); }
-.script-art { position:relative;height:142px;overflow:hidden;background:#252820; }
-.script-art::before { content:"";position:absolute;inset:0;opacity:.35;background-image:linear-gradient(rgba(255,255,255,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.15) 1px,transparent 1px);background-size:24px 24px;mask-image:radial-gradient(circle at 55% 48%,black,transparent 74%); }
-.script-art > span { position:absolute;left:20px;bottom:17px;z-index:2;width:58px;height:58px;display:grid;place-items:center;border-radius:18px;background:var(--acid);color:var(--ink);font:28px Georgia,"Songti SC",serif;box-shadow:0 12px 36px rgba(0,0,0,.18); }
-.script-art > i { position:absolute;right:15%;top:18%;width:105px;height:105px;border:1px solid rgba(255,255,255,.24);border-radius:50%; }
-.script-art > i:last-child { right:27%;top:34%;width:58px;height:58px;border-color:rgba(216,255,67,.5); }
+.script-art { position:relative;height:142px;overflow:hidden;background-color:#252820;background-position:center;background-size:cover;transition:background-size .35s ease; }
+.script-card:hover .script-art { background-size:106%; }
+.script-art::before { content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.08),transparent 34%,rgba(0,0,0,.08));pointer-events:none; }
+.script-art .cover-mode { position:absolute;left:14px;top:14px;z-index:2;padding:6px 9px;border:1px solid rgba(255,255,255,.42);border-radius:20px;background:rgba(10,12,9,.48);backdrop-filter:blur(8px);color:white;font:700 9px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;box-shadow:0 8px 24px rgba(0,0,0,.18); }
 .tone-violet .script-art { background:#28233e; }.tone-violet .script-art > span { background:#9588ff;color:white; }
 .tone-amber .script-art { background:#3d2f20; }.tone-amber .script-art > span { background:#ffc95b; }
 .tone-blue .script-art { background:#1f3040; }.tone-blue .script-art > span { background:#86caff; }
@@ -1256,6 +1255,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .script-meta b.free { background:rgba(216,255,67,.48);color:#56611d; }.script-meta b.paid { background:var(--ink);color:var(--acid); }
 .script-card-copy > strong { margin-top:15px;display:block;font:25px Georgia,"Songti SC",serif;font-weight:400; }
 .script-card-copy > p { min-height:36px;margin:8px 0 18px;color:var(--muted);font-size:11px;line-height:1.6; }
+.mechanic-tags { min-height:24px;margin:-7px 0 13px;display:flex;flex-wrap:wrap;gap:5px; }
+.mechanic-tags span,.world-mechanics span { padding:5px 8px;border-radius:20px;background:rgba(129,115,255,.09);color:#6759d4;font-size:9px;font-weight:800; }
 .script-card-copy > small { display:flex;justify-content:space-between;color:#797e72;font-size:9px; }
 .script-card-copy > small i { color:#5f692b;font-size:15px;font-style:normal; }
 .match-strip { width:100%;margin-top:14px;padding:18px 20px;display:grid;grid-template-columns:12px 1fr 30px;align-items:center;gap:13px;border:0;border-radius:18px;background:var(--ink);color:white;text-align:left; }
@@ -1309,13 +1310,13 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .store-section-title h2 { font-size:28px; }
   .featured-script-row .script-card { flex-basis:83%; }
   .script-art { height:126px; }
-  .script-art > span { width:53px;height:53px;font-size:25px; }
+  .script-art .cover-mode { left:11px;top:11px;font-size:8px; }
   .script-card-copy { padding:15px; }
   .script-card-copy > strong { font-size:22px; }
   .script-card-copy > p { font-size:10px; }
   .script-card-grid { gap:9px; }
   .script-card-grid.compact .script-art { height:105px; }
-  .script-card-grid.compact .script-art > span { width:45px;height:45px;border-radius:14px;font-size:21px; }
+  .script-card-grid.compact .script-art .cover-mode { left:9px;top:9px; }
   .script-card-grid.compact .script-card-copy > strong { font-size:19px; }
   .script-card-grid.compact .script-card-copy > p { min-height:32px;margin-bottom:12px; }
   .app-flow-intro h1 { font-size:38px; }
@@ -1511,6 +1512,9 @@ button.iphone-download { font-family:inherit;cursor:pointer; }
 .story-format { margin:-4px 0 13px;display:inline-flex;padding:5px 9px;border-radius:12px;background:rgba(216,255,67,.12);color:var(--acid);font-size:10px;font-weight:800; }
 .format-竞争 { background:rgba(255,111,89,.15);color:#ff9b88; }
 .format-阵营 { background:rgba(169,154,255,.16);color:#bcb1ff; }
+.format-独行 { background:rgba(140,230,197,.15);color:#9cf1d2; }
+.world-mechanics { margin:8px 0 15px;display:flex;flex-wrap:wrap;gap:7px; }
+.world-mechanics span { background:rgba(216,255,67,.1);color:var(--acid);font-size:10px; }
 .victory-rule { margin:17px 0 0;padding:14px 16px;border:1px solid rgba(169,154,255,.28);border-radius:10px;background:rgba(169,154,255,.08); }
 .victory-rule span { color:#bcb1ff;font-size:10px;font-weight:800;letter-spacing:.08em; }
 .victory-rule p { margin:7px 0 0;color:#d5d7d0;font-size:13px;line-height:1.7; }
@@ -1534,6 +1538,14 @@ button.iphone-download { font-family:inherit;cursor:pointer; }
 .profile-level > div { height:8px;overflow:hidden;border-radius:8px;background:#dedfd8; }
 .profile-level i { height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,var(--violet),var(--acid)); }
 .profile-level small { color:var(--muted);font-size:10px; }
+.whisper-composer { margin:18px 0 0;padding:15px;display:grid;gap:9px;border:1px solid rgba(129,115,255,.25);border-radius:12px;background:rgba(129,115,255,.06); }
+.whisper-composer > span { color:#5f52d8;font-size:12px;font-weight:900; }
+.whisper-composer > p { margin:0;color:var(--muted);font-size:10px;line-height:1.5; }
+.whisper-composer select,.whisper-composer textarea { width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.82);color:var(--ink);font:12px/1.5 inherit;resize:vertical; }
+.whisper-composer button { min-height:40px;border:0;border-radius:9px;background:var(--ink);color:var(--acid);font-size:12px;font-weight:800; }
+.whisper-composer button:disabled { opacity:.4; }
+.solo-section-title { padding-top:4px; }
+.solo-script-grid .script-card { border-color:rgba(140,230,197,.34); }
 
 @media (max-width:680px) {
   .role-lobby { padding:8px 0 28px; }

@@ -56,8 +56,9 @@ export type WorldState = {
   stageTask?: string;
   endingCondition?: string;
   maxTurns?: number;
-  format?: "合作" | "阵营" | "竞争";
+  format?: "独行" | "合作" | "阵营" | "竞争";
   victoryRule?: string;
+  mechanics?: string[];
   publicRules: string[];
   clues: string[];
   memory: string[];

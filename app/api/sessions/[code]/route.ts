@@ -10,6 +10,7 @@ import {
   generateSessionWorld,
   getSessionView,
   RoleAlreadyClaimedError,
+  sendWhisper,
   selectMemberRole,
   sessionStartError,
   submitChoice,
@@ -38,17 +39,19 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { code } = await context.params;
     const body = (await request.json()) as {
-      action?: "join" | "select_role" | "start" | "choice";
+      action?: "join" | "select_role" | "start" | "choice" | "whisper";
       name?: string;
       content?: string;
       deviceId?: string;
       roleId?: string;
+      targetMemberId?: string;
     };
     const limits = {
       join: 40,
       select_role: 40,
       start: 8,
       choice: 120,
+      whisper: 80,
     } as const;
     if (body.action && body.action in limits) {
       const blocked = await guardRequest(
@@ -102,6 +105,14 @@ export async function POST(request: Request, context: RouteContext) {
       if (!content) return Response.json({ error: "写下你的选择后再提交" }, { status: 400 });
       const result = await submitChoice({ sessionId: session.id, memberId: member.id, content });
       return Response.json({ ok: true, ...result });
+    }
+
+    if (body.action === "whisper") {
+      const content = body.content?.trim().slice(0, 180);
+      const targetMemberId = body.targetMemberId?.trim().slice(0, 80);
+      if (!content || !targetMemberId) return Response.json({ error: "选择一个人并写下密语" }, { status: 400 });
+      await sendWhisper({ sessionId: session.id, senderMemberId: member.id, targetMemberId, content });
+      return Response.json({ ok: true });
     }
 
     return Response.json({ error: "未知操作" }, { status: 400 });

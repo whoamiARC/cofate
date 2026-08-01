@@ -12,6 +12,7 @@ export type ScriptPlan = {
 };
 
 export const SCRIPT_CATEGORIES = [
+  "单人",
   "聚会",
   "双人",
   "都市",
@@ -29,7 +30,7 @@ export const SCRIPT_CATEGORIES = [
 
 export type ScriptCategory = (typeof SCRIPT_CATEGORIES)[number];
 
-export type ScriptFormat = "合作" | "阵营" | "竞争";
+export type ScriptFormat = "独行" | "合作" | "阵营" | "竞争";
 
 export type ScriptRoleOption = {
   id: string;
@@ -53,6 +54,7 @@ export type ScriptCatalogItem = {
   playerCount?: number;
   victoryRule?: string;
   roleOptions?: ScriptRoleOption[];
+  mechanics?: string[];
   featured?: boolean;
 };
 
@@ -174,9 +176,71 @@ export const SCRIPT_CATALOG: ScriptCatalogItem[] = [
     ],
     plan: storyPlan(5, "核验船票、身份档案与上涨水位，分别确认自己不能公开的底线。", "通过私密选择交换记忆与承诺，判断共同身份是否意味着拯救或抹除。", "完成登船方案并分别确认愿意保留、放弃或共同承担的名字。", "检票系统接受一个最终身份方案，且两人的私人承诺完成结算；第5回合渡船离岸。"),
   },
+  {
+    id: "echo-lighthouse",
+    mark: "塔",
+    title: "只向明天亮起的灯塔",
+    tagline: "每次点灯，你都会失去一段昨天。",
+    theme: "独自值守海上灯塔的第一夜，灯光没有照向海面，而是照出了二十四小时后的房间；一台自称前任守塔人的旧收音机不断要求你改写明天",
+    category: "单人",
+    players: "单人",
+    playerCount: 1,
+    duration: "18 分钟",
+    price: 0,
+    tone: "blue",
+    format: "独行",
+    victoryRule: "在记忆全部熄灭前确认收音机的身份，并选择保留昨天、拯救明天或让灯塔永远关闭。",
+    featured: true,
+    mechanics: ["AI 角色对话", "记忆取舍", "未来预演"],
+    roleOptions: [
+      { id: "lighthouse-keeper", title: "新任守塔人", teaser: "你带着一封没有署名的任命书登岛，笔迹却和你完全相同。" },
+    ],
+    plan: storyPlan(6, "检查灯室、潮汐记录与旧收音机，第一次看见明天留下的痕迹。", "和收音机交换情报，用一段昨天换取一次未来预演，并判断哪些未来正在诱导你。", "选择最后一次点灯的方向，决定自己、收音机与灯塔的去留。", "守塔人完成最后一次点灯并确认保留的记忆；第6回合风暴抵达灯塔。"),
+  },
+  {
+    id: "tomorrow-pawnshop",
+    mark: "当",
+    title: "明日典当行",
+    tagline: "你可以赎回遗憾，但要抵押未来。",
+    theme: "深夜街角出现一家只接受未来作为抵押的典当行，独自进入的客人发现货架上摆着自己从未拥有过的人生，而柜台后的老板似乎认识每一种结局",
+    category: "单人",
+    players: "单人",
+    playerCount: 1,
+    duration: "16 分钟",
+    price: 0,
+    tone: "amber",
+    format: "独行",
+    victoryRule: "在日出前完成最多三次交易，判断哪件人生属于自己，并带着仍愿意承担的未来离开。",
+    mechanics: ["三次交易", "代价账本", "多结局收藏"],
+    roleOptions: [
+      { id: "last-customer", title: "最后一位客人", teaser: "你没有带来可典当的东西，老板却已经替你写好了价目。" },
+    ],
+    plan: storyPlan(5, "查看三件未曾拥有的人生，完成第一次试探交易并弄清典当规则。", "用未来片段赎回一件遗憾，识破老板账本中被隐藏的第四种结局。", "完成、撤销或毁掉最后一笔交易，带走唯一愿意承认的人生。", "日出钟响且账本完成结算；第5回合典当行从街角消失。"),
+  },
+  {
+    id: "moon-greenhouse",
+    mark: "月",
+    title: "月球最后一座温室",
+    tagline: "植物记得地球，人类却忘了。",
+    theme: "月球基地撤离多年后，一名维修员独自唤醒最后一座温室，照料系统声称所有植物都来自地球，但每一朵花都在播放一段与你有关的陌生记忆",
+    category: "单人",
+    players: "单人",
+    playerCount: 1,
+    duration: "20 分钟",
+    price: 0,
+    tone: "mint",
+    format: "独行",
+    victoryRule: "在氧气耗尽前培育出一株能够证明地球记忆的植物，并决定把种子送回人类、留给月球或交给照料系统。",
+    mechanics: ["资源分配", "植物培育", "AI 信任值"],
+    roleOptions: [
+      { id: "lunar-gardener", title: "温室维修员", teaser: "你的维修档案显示这是第一次登月，但温室里的植物都朝你转过了叶片。" },
+    ],
+    plan: storyPlan(6, "修复水、光与氧气模块，选择第一株唤醒的植物并读取它的记忆。", "在有限资源中培育植物，与照料系统建立或破坏信任，拼出自己和基地的真实关系。", "选择最后一株开花的植物与种子去向，并决定是否向人类公开全部记忆。", "种子完成封装且温室获得最终归属；第6回合基地进入永久休眠。"),
+  },
 ];
 
 const CATEGORY_ROLE_NAMES: Record<ScriptCategory, string[]> = {
+  单人: ["独行调查员", "最后的值守者", "失忆来客", "临时管理员", "唯一见证者", "归来者", "未来收件人", "没有档案的人"],
   聚会: ["组织者", "迟到者", "记录者", "调停者", "旁观者", "旧友", "新面孔", "秘密来宾"],
   双人: ["先开口的人", "最后回应的人", "保留秘密的人", "寻找答案的人", "过去的见证者", "未来的来客", "守约者", "失约者"],
   都市: ["夜班职员", "门禁管理员", "临时访客", "失物招领人", "匿名住户", "巡查员", "档案员", "最后离开者"],
@@ -192,11 +256,28 @@ const CATEGORY_ROLE_NAMES: Record<ScriptCategory, string[]> = {
   冒险: ["领航员", "地图保管者", "遗迹译者", "补给官", "先锋", "宝藏委托人", "失踪队员的后人", "秘密竞争者"],
 };
 
+const CATEGORY_MECHANICS: Record<ScriptCategory, string[]> = {
+  单人: ["AI 角色对话", "状态抉择", "多结局收藏"],
+  聚会: ["匿名密语", "临时联盟", "最终表决"],
+  双人: ["秘密承诺", "同步选择", "关系温度"],
+  都市: ["规则验证", "匿名密语", "限时逃离"],
+  校园: ["记忆交换", "秘密投票", "身份交叉"],
+  轻悬疑: ["线索拼图", "秘密投票", "真假规则"],
+  推理: ["证词交叉", "匿名指认", "最终还原"],
+  科幻: ["资源分配", "系统权限", "阵营决策"],
+  奇幻: ["契约交换", "阵营协商", "代价魔法"],
+  古风: ["密信往来", "势力声望", "终局裁定"],
+  末日: ["生存资源", "秘密结盟", "淘汰抉择"],
+  情感: ["匿名留言", "关系选择", "个人和解"],
+  喜剧: ["即兴任务", "身份错位", "全员救场"],
+  冒险: ["队伍分工", "宝物交换", "路线投票"],
+};
+
 export function getScriptRoleOptions(scriptId?: string | null, limit = 8): ScriptRoleOption[] {
   const script = scriptId ? findScript(scriptId) : undefined;
   if (script?.roleOptions?.length) return script.roleOptions.slice(0, limit);
   const names = script ? CATEGORY_ROLE_NAMES[script.category] : CATEGORY_ROLE_NAMES.轻悬疑;
-  return names.slice(0, Math.max(2, Math.min(limit, 8))).map((title, index) => ({
+  return names.slice(0, Math.max(1, Math.min(limit, 8))).map((title, index) => ({
     id: `${script?.id ?? "custom"}-role-${index + 1}`,
     title,
     teaser: script
@@ -211,6 +292,15 @@ export function findScript(scriptId: string) {
 
 export function findScriptByTheme(theme: string) {
   return SCRIPT_CATALOG.find((script) => script.theme === theme);
+}
+
+export function getScriptCover(scriptId: string) {
+  return `/covers/${scriptId}.webp`;
+}
+
+export function getScriptMechanics(scriptId?: string | null) {
+  const script = scriptId ? findScript(scriptId) : undefined;
+  return script?.mechanics ?? CATEGORY_MECHANICS[script?.category ?? "轻悬疑"];
 }
 
 export function getScriptPlan(scriptId?: string | null) {
