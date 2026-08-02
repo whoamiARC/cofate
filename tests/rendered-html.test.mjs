@@ -87,6 +87,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(sessionRoute, /retry_turn/);
   assert.match(app, /AmbientMusicToggle/);
   assert.match(app, /cofate-night-loop\.mp3/);
+  assert.match(await readFile(new URL("scripts/generate-ambient-track.mjs", templateRoot), "utf8"), /const duration = barSeconds \* barCount/);
+  assert.match(await readFile(new URL("scripts/generate-ambient-track.mjs", templateRoot), "utf8"), /const barCount = 60/);
   assert.match(app, /立即重新演算/);
   assert.match(schema, /session_choice_unique/);
   assert.match(schema, /where\(sql`\$\{table\.kind\} = 'choice'`\)/);

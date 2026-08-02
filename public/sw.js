@@ -1,4 +1,4 @@
-const CACHE_NAME = "cofate-shell-v3";
+const CACHE_NAME = "cofate-shell-v4";
 const COVER_CACHE_NAME = "cofate-covers-v1";
 const APP_SHELL = ["/app", "/manifest.webmanifest", "/favicon.svg"];
 
