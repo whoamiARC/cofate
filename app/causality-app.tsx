@@ -653,23 +653,25 @@ function AmbientMusicToggle({ active }: { active: boolean }) {
 
   const start = useCallback(async () => {
     if (graphRef.current || !active) return;
-    const context = new AudioContext();
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
     const master = context.createGain();
     const filter = context.createBiquadFilter();
     master.gain.setValueAtTime(0.0001, context.currentTime);
-    master.gain.exponentialRampToValueAtTime(0.045, context.currentTime + 1.8);
+    master.gain.exponentialRampToValueAtTime(0.15, context.currentTime + 1.2);
     filter.type = "lowpass";
-    filter.frequency.value = 520;
+    filter.frequency.value = 1_500;
     filter.Q.value = 0.8;
     filter.connect(master);
     master.connect(context.destination);
-    const sources = [55, 82.41, 110].map((frequency, index) => {
+    const sources = [110, 164.81, 220, 329.63].map((frequency, index) => {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
       oscillator.type = index === 1 ? "triangle" : "sine";
       oscillator.frequency.value = frequency;
-      oscillator.detune.value = index === 0 ? -7 : index === 2 ? 5 : 0;
-      gain.gain.value = index === 1 ? 0.18 : 0.12;
+      oscillator.detune.value = index === 0 ? -7 : index === 3 ? 5 : 0;
+      gain.gain.value = [0.11, 0.08, 0.06, 0.035][index];
       oscillator.connect(gain);
       gain.connect(filter);
       oscillator.start();
@@ -677,20 +679,34 @@ function AmbientMusicToggle({ active }: { active: boolean }) {
     });
     const pulse = context.createOscillator();
     const pulseDepth = context.createGain();
-    pulse.frequency.value = 0.09;
-    pulseDepth.gain.value = 0.012;
+    pulse.frequency.value = 0.08;
+    pulseDepth.gain.value = 0.025;
     pulse.connect(pulseDepth);
     pulseDepth.connect(master.gain);
     pulse.start();
     sources.push(pulse);
-    await context.resume();
+    const chimeGain = context.createGain();
+    chimeGain.gain.setValueAtTime(0.0001, context.currentTime);
+    chimeGain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.03);
+    chimeGain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1.4);
+    chimeGain.connect(context.destination);
+    [523.25, 659.25].forEach((frequency, index) => {
+      const chime = context.createOscillator();
+      chime.type = "sine";
+      chime.frequency.value = frequency;
+      chime.connect(chimeGain);
+      chime.start(context.currentTime + index * 0.12);
+      chime.stop(context.currentTime + 1.45);
+      sources.push(chime);
+    });
     graphRef.current = { context, sources };
+    await context.resume();
     setPlaying(true);
     window.localStorage.setItem("cofate-ambient-music", "on");
   }, [active]);
 
   useEffect(() => {
-    if (!active || window.localStorage.getItem("cofate-ambient-music") !== "on") return;
+    if (!active || window.localStorage.getItem("cofate-ambient-music") === "off") return;
     const unlock = () => void start();
     window.addEventListener("pointerdown", unlock, { once: true });
     return () => window.removeEventListener("pointerdown", unlock);
