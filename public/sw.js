@@ -1,4 +1,4 @@
-const CACHE_NAME = "cofate-shell-v5";
+const CACHE_NAME = "cofate-shell-v6";
 const COVER_CACHE_NAME = "cofate-covers-v1";
 const APP_SHELL = [
   "/app",

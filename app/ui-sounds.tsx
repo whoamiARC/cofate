@@ -38,7 +38,7 @@ export function UiSounds() {
       const element = isInteractiveTarget(target);
       if (!element) return;
       const confirmAction = isConfirmAction(element);
-      play(confirmAction ? confirm : tap, confirmAction ? 0.3 : 0.22);
+      play(confirmAction ? confirm : tap, confirmAction ? 0.24 : 0.18);
     };
 
     const onPointerDown = (event: PointerEvent) => trigger(event.target);
