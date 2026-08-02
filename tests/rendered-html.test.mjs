@@ -77,6 +77,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /fetchPriority=\{priority \? "high" : "auto"\}/);
   assert.match(app, /timeline-heading/);
   assert.match(app, /choice-dock-head/);
+  assert.match(app, /choice-dock-mobile-bar/);
+  assert.match(app, /展开选择/);
   assert.match(app, /public-rules/);
   assert.match(app, /script-card/);
   assert.match(sessionService, /entry\.kind === "choice"/);

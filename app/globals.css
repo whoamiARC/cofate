@@ -1705,3 +1705,58 @@ button.iphone-download { font-family:inherit;cursor:pointer; }
   .room-page .choice-line textarea { font-size:14px; }
   .room-page .choice-line button { font-size:13px; }
 }
+
+/* Mobile story-first composer: a compact action rail that expands on demand. */
+.choice-dock-mobile-bar { display:none; }
+.choice-dock-body { display:block; }
+
+@media (max-width:720px) {
+  .room-page .story-panel { padding-bottom:calc(190px + env(safe-area-inset-bottom)); }
+  .room-page .choice-dock {
+    position:fixed;
+    z-index:32;
+    left:10px;
+    right:10px;
+    bottom:calc(88px + env(safe-area-inset-bottom));
+    width:auto;
+    max-height:none;
+    margin:0;
+    padding:0;
+    overflow:hidden;
+    border:1px solid rgba(31,35,25,.16);
+    border-radius:22px;
+    background:rgba(250,249,244,.985);
+    box-shadow:0 16px 48px rgba(23,26,19,.2);
+    transform:none;
+  }
+  .choice-dock-mobile-bar {
+    min-height:76px;
+    padding:11px 12px 11px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .choice-dock-mobile-bar > div { min-width:0;display:grid;gap:4px; }
+  .choice-dock-mobile-bar span { color:var(--violet);font:800 10px ui-monospace,SFMono-Regular,monospace;letter-spacing:.11em; }
+  .choice-dock-mobile-bar strong { overflow:hidden;color:var(--ink);font-size:15px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap; }
+  .choice-dock-mobile-bar button { flex:0 0 auto;min-height:44px;padding:0 14px;border:0;border-radius:14px;background:var(--ink);color:var(--acid);font-size:13px;font-weight:800; }
+  .room-page .choice-dock-body { display:none; }
+  .room-page .choice-dock.composer-expanded { max-height:min(62dvh,590px); }
+  .room-page .composer-expanded .choice-dock-mobile-bar { border-bottom:1px solid var(--line); }
+  .room-page .composer-expanded .choice-dock-mobile-bar button { background:rgba(129,115,255,.12);color:#5f52d8; }
+  .room-page .composer-expanded .choice-dock-body {
+    max-height:calc(62dvh - 77px);
+    padding:14px;
+    display:block;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+}
+
+@media (max-width:360px) {
+  .room-page .choice-dock { left:8px;right:8px;padding:0; }
+  .choice-dock-mobile-bar { padding-inline:13px 10px; }
+  .choice-dock-mobile-bar strong { font-size:14px; }
+  .choice-dock-mobile-bar button { padding-inline:11px;font-size:12px; }
+}

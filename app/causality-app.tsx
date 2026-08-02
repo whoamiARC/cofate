@@ -563,6 +563,7 @@ function Room(props: {
   const [roomTab, setRoomTab] = useState<"story" | "role" | "people">("story");
   const [whisperTarget, setWhisperTarget] = useState("");
   const [whisperText, setWhisperText] = useState("");
+  const [composerExpanded, setComposerExpanded] = useState(false);
   if (!session) return <main className="room-page"><Header onBack={props.onBack} label="正在连接" /><div className="loading-state"><span>因</span><p>正在寻找这个世界的入口…</p>{props.error && <small>{props.error}</small>}</div></main>;
   const waiting = session.status === "waiting";
   const generating = session.status === "generating";
@@ -608,13 +609,16 @@ function Room(props: {
                 {session.status === "resolving" && <div className="director-thinking"><i /><span>因果正在汇合所有人的选择…</span></div>}
                 <div id="story-end" />
               </div>
-              {session.status !== "ended" && <form className="choice-dock" onSubmit={props.onSubmit}>
-                <div className="choice-dock-head"><div><span>YOUR MOVE</span><strong>{props.meChosen ? "行动已经提交" : "现在，轮到你选择"}</strong></div><b>🔒 仅你可见</b></div>
-                <div className="choice-status"><span>第 {session.turn}{session.world?.maxTurns ? ` / ${session.world.maxTurns}` : ""} 回合{session.world?.stageTitle ? ` · ${session.world.stageTitle}` : ""}</span><small>{props.meChosen ? `已提交 · ${props.choicesCount}/${session.members.length} 人完成` : session.world?.nextPrompt}</small></div>
-                {!props.meChosen && session.world?.suggestedChoices?.length ? <div className="suggestions">{session.world.suggestedChoices.map((item) => <button type="button" onClick={() => props.onChoice(item)} key={item}>{item}</button>)}</div> : null}
-                <div className="choice-line"><textarea value={props.choice} onChange={(event) => props.onChoice(event.target.value)} disabled={props.meChosen || props.busy || session.status === "resolving"} maxLength={360} rows={2} placeholder={props.meChosen ? "等待其他人的私密行动…" : "写下你的真实行动；公开讨论和最终行动可以不同"} /><button disabled={props.meChosen || props.busy || !props.choice.trim() || session.status === "resolving"}>{props.busy ? "…" : "秘密提交"}</button></div>
-                {session.status === "active" && session.errorMessage && props.meChosen && props.choicesCount === session.members.length && <div className="turn-recovery"><span>刚才的演算超时，系统正在自动恢复这一回合。</span><button type="button" onClick={props.onRetry} disabled={props.busy}>{props.busy ? "恢复中…" : "立即重新演算"}</button></div>}
-                {(props.error || (session.status === "active" ? session.errorMessage : "")) && <small className="error-text">{props.error || session.errorMessage}</small>}
+              {session.status !== "ended" && <form className={`choice-dock ${composerExpanded ? "composer-expanded" : "composer-collapsed"}`} onSubmit={(event) => { setComposerExpanded(false); props.onSubmit(event); }}>
+                <div className="choice-dock-mobile-bar"><div><span>{session.status === "resolving" ? "因果演算中" : props.meChosen ? "行动已提交" : `第 ${session.turn} 回合 · 轮到你`}</span><strong>{session.status === "resolving" ? "正在汇合所有人的选择" : props.meChosen ? `${props.choicesCount}/${session.members.length} 人已完成` : session.world?.stageTitle || "查看当前任务"}</strong></div><button type="button" onClick={() => setComposerExpanded((expanded) => !expanded)} aria-expanded={composerExpanded}>{composerExpanded ? "收起 ↓" : props.meChosen ? "查看状态 ↑" : "展开选择 ↑"}</button></div>
+                <div className="choice-dock-body">
+                  <div className="choice-dock-head"><div><span>YOUR MOVE</span><strong>{props.meChosen ? "行动已经提交" : "现在，轮到你选择"}</strong></div><b>🔒 仅你可见</b></div>
+                  <div className="choice-status"><span>第 {session.turn}{session.world?.maxTurns ? ` / ${session.world.maxTurns}` : ""} 回合{session.world?.stageTitle ? ` · ${session.world.stageTitle}` : ""}</span><small>{props.meChosen ? `已提交 · ${props.choicesCount}/${session.members.length} 人完成` : session.world?.nextPrompt}</small></div>
+                  {!props.meChosen && session.world?.suggestedChoices?.length ? <div className="suggestions">{session.world.suggestedChoices.map((item) => <button type="button" onClick={() => props.onChoice(item)} key={item}>{item}</button>)}</div> : null}
+                  <div className="choice-line"><textarea value={props.choice} onChange={(event) => props.onChoice(event.target.value)} disabled={props.meChosen || props.busy || session.status === "resolving"} maxLength={360} rows={2} placeholder={props.meChosen ? "等待其他人的私密行动…" : "写下你的真实行动；公开讨论和最终行动可以不同"} /><button disabled={props.meChosen || props.busy || !props.choice.trim() || session.status === "resolving"}>{props.busy ? "…" : "秘密提交"}</button></div>
+                  {session.status === "active" && session.errorMessage && props.meChosen && props.choicesCount === session.members.length && <div className="turn-recovery"><span>刚才的演算超时，系统正在自动恢复这一回合。</span><button type="button" onClick={props.onRetry} disabled={props.busy}>{props.busy ? "恢复中…" : "立即重新演算"}</button></div>}
+                  {(props.error || (session.status === "active" ? session.errorMessage : "")) && <small className="error-text">{props.error || session.errorMessage}</small>}
+                </div>
               </form>}
               {session.status === "ended" && <EndingCard session={session} onBack={props.onBack} />}
             </>
