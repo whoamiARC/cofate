@@ -581,12 +581,13 @@ function Room(props: {
             <>
               {session.world && <WorldBrief session={session} />}
               <div className="timeline">
+                <header className="timeline-heading"><div><span>STORY THREAD</span><strong>故事进展</strong></div><small>第 {session.turn} 回合 · {session.entries.length} 条记录</small></header>
                 {session.entries.map((entry) => <StoryEntry entry={entry} meId={session.me?.id || ""} key={entry.id} />)}
                 {session.status === "resolving" && <div className="director-thinking"><i /><span>因果正在汇合所有人的选择…</span></div>}
                 <div id="story-end" />
               </div>
               {session.status !== "ended" && <form className="choice-dock" onSubmit={props.onSubmit}>
-                <div className="private-action-note">🔒 私密行动 · 其他玩家看不到你提交的原文</div>
+                <div className="choice-dock-head"><div><span>YOUR MOVE</span><strong>{props.meChosen ? "行动已经提交" : "现在，轮到你选择"}</strong></div><b>🔒 仅你可见</b></div>
                 <div className="choice-status"><span>第 {session.turn}{session.world?.maxTurns ? ` / ${session.world.maxTurns}` : ""} 回合{session.world?.stageTitle ? ` · ${session.world.stageTitle}` : ""}</span><small>{props.meChosen ? `已提交 · ${props.choicesCount}/${session.members.length} 人完成` : session.world?.nextPrompt}</small></div>
                 {!props.meChosen && session.world?.suggestedChoices?.length ? <div className="suggestions">{session.world.suggestedChoices.map((item) => <button type="button" onClick={() => props.onChoice(item)} key={item}>{item}</button>)}</div> : null}
                 <div className="choice-line"><textarea value={props.choice} onChange={(event) => props.onChoice(event.target.value)} disabled={props.meChosen || props.busy || session.status === "resolving"} maxLength={360} rows={2} placeholder={props.meChosen ? "等待其他人的私密行动…" : "写下你的真实行动；公开讨论和最终行动可以不同"} /><button disabled={props.meChosen || props.busy || !props.choice.trim() || session.status === "resolving"}>{props.busy ? "…" : "秘密提交"}</button></div>
@@ -624,7 +625,7 @@ function Lobby({ session, busy, error, onStart, onInvite, onSelectRole }: { sess
 
 function WorldBrief({ session }: { session: SessionView }) {
   const world = session.world!;
-  return <div className="world-brief"><p className="eyebrow">CURRENT WORLD · TURN {session.turn}{world.maxTurns ? ` / ${world.maxTurns}` : ""}</p><h1>{world.title}</h1>{world.format && <span className={`story-format format-${world.format}`}>{world.format}本</span>}<p className="premise">{world.premise}</p>{world.mechanics?.length ? <div className="world-mechanics">{world.mechanics.map((mechanic) => <span key={mechanic}>{mechanic}</span>)}</div> : null}{world.victoryRule && <div className="victory-rule"><span>胜负规则</span><p>{world.victoryRule}</p></div>}{world.stageTask && <div className="stage-objective"><span>{world.stageTitle || "当前任务"}</span><p>{world.stageTask}</p></div>}<details open><summary>当前公开规则 · {world.publicRules.length}</summary><ol>{world.publicRules.map((rule, index) => <li key={`${rule}-${index}`}>{rule}</li>)}</ol></details>{world.clues.length > 0 && <div className="clue-line"><span>已知线索</span><p>{world.clues.join(" · ")}</p></div>}{world.endingCondition && <details className="ending-condition"><summary>本局终止条件</summary><p>{world.endingCondition}</p></details>}</div>;
+  return <div className="world-brief"><p className="eyebrow">CURRENT WORLD · TURN {session.turn}{world.maxTurns ? ` / ${world.maxTurns}` : ""}</p><h1>{world.title}</h1>{world.format && <span className={`story-format format-${world.format}`}>{world.format}本</span>}<p className="premise">{world.premise}</p>{world.mechanics?.length ? <div className="world-mechanics">{world.mechanics.map((mechanic) => <span key={mechanic}>{mechanic}</span>)}</div> : null}{world.victoryRule && <div className="victory-rule"><span>胜负规则</span><p>{world.victoryRule}</p></div>}{world.stageTask && <div className="stage-objective"><span>{world.stageTitle || "当前任务"}</span><p>{world.stageTask}</p></div>}<details className="public-rules"><summary>查看当前公开规则 · {world.publicRules.length}</summary><ol>{world.publicRules.map((rule, index) => <li key={`${rule}-${index}`}>{rule}</li>)}</ol></details>{world.clues.length > 0 && <div className="clue-line"><span>已知线索</span><p>{world.clues.join(" · ")}</p></div>}{world.endingCondition && <details className="ending-condition"><summary>本局终止条件</summary><p>{world.endingCondition}</p></details>}</div>;
 }
 
 function RoleCard({ role }: { role: NonNullable<SessionView["me"]>["role"] }) {
