@@ -64,6 +64,7 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /timeline-heading/);
   assert.match(app, /choice-dock-head/);
   assert.match(app, /public-rules/);
+  assert.match(app, /script-card/);
   assert.match(sessionService, /entry\.kind === "choice"/);
   assert.match(sessionService, /sessionResults/);
   assert.match(schema, /player_profiles/);

@@ -1233,32 +1233,29 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .store-section-title { margin:48px 0 16px;display:flex;align-items:end;justify-content:space-between; }
 .store-section-title h2 { margin:5px 0 0;font:30px Georgia,"Songti SC",serif;font-weight:400; }
 .store-section-title > button { padding:8px 0;border:0;background:transparent;color:#59622d;font-size:11px; }
-.featured-script-row { display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none; }
+.featured-script-row { display:flex;align-items:stretch;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none; }
 .featured-script-row::-webkit-scrollbar,.category-tabs::-webkit-scrollbar { display:none; }
 .featured-script-row .script-card { flex:0 0 69%;scroll-snap-align:start; }
-.script-card-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:12px; }
-.script-card { padding:0;overflow:hidden;border:1px solid rgba(31,35,25,.12);border-radius:22px;background:rgba(255,255,255,.66);color:var(--ink);text-align:left;box-shadow:0 18px 50px rgba(29,33,23,.06);transition:transform .18s ease,box-shadow .18s ease; }
+.script-card-grid { display:grid;grid-template-columns:repeat(2,1fr);align-items:stretch;gap:12px; }
+.script-card { --card-accent:#d8ff43;width:100%;min-width:0;min-height:100%;padding:0;overflow:hidden;display:flex;flex-direction:column;align-self:stretch;appearance:none;border:1px solid rgba(255,255,255,.09);border-radius:24px;background:#171a14;color:#f5f3eb;text-align:left;vertical-align:top;isolation:isolate;box-shadow:0 22px 58px rgba(20,23,16,.18);transition:transform .18s ease,box-shadow .18s ease; }
 .script-card:active { transform:scale(.975); }
-.script-art { position:relative;height:auto;aspect-ratio:2/1;overflow:hidden;background-color:#252820; }
-.script-art > img { position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:contain; }
-.script-art::before { content:"";position:absolute;z-index:1;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.08),transparent 34%,rgba(0,0,0,.08));pointer-events:none; }
-.script-art .cover-mode { position:absolute;left:14px;top:14px;z-index:2;padding:6px 9px;border:1px solid rgba(255,255,255,.42);border-radius:20px;background:rgba(10,12,9,.48);backdrop-filter:blur(8px);color:white;font:700 9px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;box-shadow:0 8px 24px rgba(0,0,0,.18); }
-.tone-violet .script-art { background:#28233e; }.tone-violet .script-art > span { background:#9588ff;color:white; }
-.tone-amber .script-art { background:#3d2f20; }.tone-amber .script-art > span { background:#ffc95b; }
-.tone-blue .script-art { background:#1f3040; }.tone-blue .script-art > span { background:#86caff; }
-.tone-rose .script-art { background:#412b31; }.tone-rose .script-art > span { background:#ff9eb2; }
-.tone-mint .script-art { background:#203934; }.tone-mint .script-art > span { background:#8ce6c5; }
-.script-card-copy { padding:17px 18px 19px; }
+.script-card:hover { box-shadow:0 28px 66px rgba(20,23,16,.24); }
+.tone-violet { --card-accent:#aa9cff; }.tone-amber { --card-accent:#ffcb68; }.tone-blue { --card-accent:#8fd1ff; }.tone-rose { --card-accent:#ff9fb3; }.tone-mint { --card-accent:#91e9ca; }.tone-acid { --card-accent:#d8ff43; }
+.script-art { position:relative;flex:0 0 auto;height:auto;aspect-ratio:2/1;overflow:hidden;background:#171a14; }
+.script-art > img { position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover; }
+.script-art::before { content:"";position:absolute;z-index:1;inset:0;background:linear-gradient(180deg,rgba(9,11,8,.04) 42%,rgba(23,26,20,.96) 100%),linear-gradient(115deg,rgba(255,255,255,.08),transparent 34%,rgba(0,0,0,.12));pointer-events:none; }
+.script-art .cover-mode { position:absolute;left:14px;top:14px;z-index:2;padding:7px 11px;border:1px solid rgba(255,255,255,.28);border-radius:20px;background:var(--card-accent);color:#171a14;font:800 9px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;box-shadow:0 8px 24px rgba(0,0,0,.22); }
+.script-card-copy { position:relative;z-index:2;flex:1;margin-top:-2px;padding:16px 18px 18px;display:flex;flex-direction:column;background:radial-gradient(circle at 100% 0,color-mix(in srgb,var(--card-accent) 13%,transparent),transparent 42%),#171a14; }
 .script-meta { display:flex;align-items:center;justify-content:space-between;gap:10px; }
-.script-meta > span { color:#85897e;font-size:9px; }
-.script-meta b { padding:5px 8px;border-radius:12px;font-size:9px; }
-.script-meta b.free { background:rgba(216,255,67,.48);color:#56611d; }.script-meta b.paid { background:var(--ink);color:var(--acid); }
-.script-card-copy > strong { margin-top:15px;display:block;font:25px Georgia,"Songti SC",serif;font-weight:400; }
-.script-card-copy > p { min-height:36px;margin:8px 0 18px;color:var(--muted);font-size:11px;line-height:1.6; }
-.mechanic-tags { min-height:24px;margin:-7px 0 13px;display:flex;flex-wrap:wrap;gap:5px; }
-.mechanic-tags span,.world-mechanics span { padding:5px 8px;border-radius:20px;background:rgba(129,115,255,.09);color:#6759d4;font-size:9px;font-weight:800; }
-.script-card-copy > small { display:flex;justify-content:space-between;color:#797e72;font-size:9px; }
-.script-card-copy > small i { color:#5f692b;font-size:15px;font-style:normal; }
+.script-meta > span { color:#9da297;font-size:9px;letter-spacing:.04em; }
+.script-meta b { padding:6px 9px;border:1px solid color-mix(in srgb,var(--card-accent) 42%,transparent);border-radius:14px;background:color-mix(in srgb,var(--card-accent) 12%,transparent);color:var(--card-accent);font-size:9px; }
+.script-meta b.free { background:var(--card-accent);color:#171a14; }.script-meta b.paid { background:color-mix(in srgb,var(--card-accent) 17%,transparent);color:var(--card-accent); }
+.script-card-copy > strong { margin-top:14px;display:block;color:#f5f3eb;font:25px/1.25 Georgia,"Songti SC",serif;font-weight:400; }
+.script-card-copy > p { min-height:36px;margin:8px 0 18px;overflow:hidden;display:-webkit-box;color:#b5b9ae;font-size:11px;line-height:1.6;-webkit-box-orient:vertical;-webkit-line-clamp:2; }
+.mechanic-tags { min-height:25px;margin:-7px 0 14px;display:flex;flex-wrap:wrap;gap:6px; }
+.mechanic-tags span,.world-mechanics span { padding:5px 8px;border:1px solid color-mix(in srgb,var(--card-accent) 18%,transparent);border-radius:20px;background:rgba(255,255,255,.055);color:var(--card-accent);font-size:9px;font-weight:800; }
+.script-card-copy > small { margin-top:auto;padding-top:13px;display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,.08);color:#999e93;font-size:9px; }
+.script-card-copy > small i { color:var(--card-accent);font-size:17px;font-style:normal; }
 .match-strip { width:100%;margin-top:14px;padding:18px 20px;display:grid;grid-template-columns:12px 1fr 30px;align-items:center;gap:13px;border:0;border-radius:18px;background:var(--ink);color:white;text-align:left; }
 .match-strip > i { width:9px;height:9px;border-radius:50%;background:var(--violet);box-shadow:0 0 0 6px rgba(129,115,255,.18); }
 .match-strip span { display:grid;gap:4px; }.match-strip small { color:#8f9488;font-size:9px; }.match-strip strong { font-size:14px; }.match-strip > b { color:var(--acid);font-size:20px; }
