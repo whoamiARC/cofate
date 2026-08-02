@@ -1,6 +1,5 @@
 import { createSession } from "../../../lib/session-service";
 import { guardRequest } from "../../../lib/request-guard";
-import { consumeCustomQuota, CustomQuotaExceededError } from "../../../lib/custom-quota";
 import { findScript } from "../../../lib/script-catalog";
 
 export async function POST(request: Request) {
@@ -23,15 +22,6 @@ export async function POST(request: Request) {
     if (creationKind === "catalog" && !catalogScript) {
       return Response.json({ error: "这个剧本暂时不存在" }, { status: 404 });
     }
-    if (catalogScript?.price) {
-      return Response.json({
-        error: "这是一个 ¥1 精品剧本，需要解锁后开始",
-        paymentRequired: true,
-        price: catalogScript.price,
-        item: catalogScript.title,
-      }, { status: 402 });
-    }
-    const quota = creationKind === "custom" ? await consumeCustomQuota(body.deviceId || "") : null;
     const created = await createSession({
       name,
       theme: catalogScript?.theme || body.theme?.trim().slice(0, 300) || "熟悉的聚会地点出现了无法解释的新规则",
@@ -40,16 +30,8 @@ export async function POST(request: Request) {
       maxPlayers: catalogScript?.playerCount ?? (Number.isFinite(body.maxPlayers) ? Number(body.maxPlayers) : 4),
       deviceId: body.deviceId,
     });
-    return Response.json({ code: created.code, playerToken: created.playerToken, quota }, { status: 201 });
+    return Response.json({ code: created.code, playerToken: created.playerToken }, { status: 201 });
   } catch (error) {
-    if (error instanceof CustomQuotaExceededError) {
-      return Response.json({
-        error: error.message,
-        paymentRequired: true,
-        price: 1,
-        item: "自定义世界",
-      }, { status: 402 });
-    }
     const message = error instanceof Error ? error.message : "入口创建失败";
     return Response.json({ error: message }, { status: 500 });
   }

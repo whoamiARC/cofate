@@ -24,7 +24,11 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /匹配此刻在线的真人/);
   assert.match(app, /剧情/);
   assert.match(app, /SCRIPT_CATALOG/);
-  assert.match(app, /今日免费额度/);
+  assert.match(app, /公测期间/);
+  assert.match(app, /自定义世界不限次数/);
+  assert.doesNotMatch(app, /PurchaseSheet|paymentRequired|¥1/);
+  assert.doesNotMatch(sessionRoute, /CustomQuotaExceededError|paymentRequired|status: 402/);
+  assert.doesNotMatch(scriptCatalog, /price:\s*1/);
   assert.match(app, /邀请二维码/);
   assert.match(app, /QRCodeSVG/);
   assert.match(marketing, /一个二维码/);
