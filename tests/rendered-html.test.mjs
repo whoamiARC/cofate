@@ -5,7 +5,7 @@ import test from "node:test";
 const templateRoot = new URL("../", import.meta.url);
 
 test("contains the complete CoFate AI social product", async () => {
-  const [app, marketing, layout, deepseek, sessionRoute, manifest, requestGuard, scriptCatalog, sessionService, schema] = await Promise.all([
+  const [app, marketing, layout, deepseek, sessionRoute, manifest, requestGuard, scriptCatalog, scriptTruths, sessionService, schema] = await Promise.all([
     readFile(new URL("../app/causality-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/marketing-home.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -14,6 +14,7 @@ test("contains the complete CoFate AI social product", async () => {
     readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
     readFile(new URL("../lib/request-guard.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/script-catalog.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/script-truths.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/session-service.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
   ]);
@@ -53,6 +54,18 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(scriptCatalog, /category: "冒险"/);
   assert.match(deepseek, /不要把非悬疑题材强行写成恐怖或规则怪谈/);
   assert.match(deepseek, /completedTasks/);
+  assert.match(deepseek, /truthReveal/);
+  assert.match(deepseek, /底层真相/);
+  assert.match(app, /TRUTH REVEALED/);
+  assert.match(app, /全员身份与私人任务/);
+  assert.match(app, /真实身份规则/);
+  assert.match(sessionService, /endingPlayers/);
+  assert.match(sessionService, /nextWorld\.truthReveal/);
+  assert.doesNotMatch(app, /script-truths/);
+  const catalogIds = [...scriptCatalog.matchAll(/\{\s*id:\s*"([a-z0-9-]+)",\s*mark:/g)].map((match) => match[1]).sort();
+  const truthIds = [...scriptTruths.matchAll(/^\s{2}"([a-z0-9-]+)":\s*\{/gm)].map((match) => match[1]).sort();
+  assert.equal(truthIds.length, 38);
+  assert.deepEqual(truthIds, catalogIds);
   assert.match(scriptCatalog, /零号避难所/);
   assert.match(scriptCatalog, /固定 4 人/);
   assert.match(app, /私密行动/);

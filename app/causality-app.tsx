@@ -635,7 +635,29 @@ function RoleCard({ role }: { role: NonNullable<SessionView["me"]>["role"] }) {
 
 function EndingCard({ session, onBack }: { session: SessionView; onBack: () => void }) {
   const result = session.me?.result;
-  return <div className="ending-card personal-ending"><span>PERSONAL RESULT · {session.turn} 回合</span><h2>{result ? result.survived ? "你活到了结局。" : result.goalCompleted ? "你没有生还，但完成了使命。" : "这一次，你没有赢。" : "这一条因果已经闭合。"}</h2>{session.world?.endingCondition && <p>{session.world.endingCondition}</p>}{result ? <><div className="ending-verdict"><b className={result.goalCompleted ? "success" : "failed"}>{result.goalCompleted ? "私人目标达成" : "私人目标未达成"}</b><p>{result.summary}</p></div><div className="ending-task-list">{result.completedTasks.map((task) => <span className="done" key={`done-${task}`}>✓ {task}</span>)}{result.failedTasks.map((task) => <span className="missed" key={`missed-${task}`}>× {task}</span>)}</div><div className="ending-rewards"><span><small>本局经验</small><b>+{result.xpEarned} XP</b></span><span><small>因果积分</small><b>+{result.pointsEarned}</b></span><span><small>账号等级</small><b>LV.{result.levelAfter}</b></span></div>{result.levelAfter > result.levelBefore && <strong className="level-up">LEVEL UP · LV.{result.levelAfter}</strong>}</> : <div className="ending-verdict"><p>个人任务正在结算，请稍候刷新。</p></div>}<button onClick={onBack}>回到入口</button></div>;
+  const reveal = session.world?.truthReveal;
+  return <div className="ending-card personal-ending">
+    <section className="truth-reveal">
+      <div className="truth-reveal-mark"><i>终</i><span>TRUTH REVEALED · 真实还原结局</span></div>
+      <h2>{reveal?.headline ?? "这一条因果已经闭合。"}</h2>
+      <p>{reveal?.truth ?? "所有选择都已经汇合，真相将在新的终局中完整记录。"}</p>
+      {reveal?.evidence?.length ? <div className="truth-evidence"><header><span>关键证据</span><small>WHY IT HAPPENED</small></header><ol>{reveal.evidence.map((evidence, index) => <li key={`${evidence}-${index}`}><b>{String(index + 1).padStart(2, "0")}</b><p>{evidence}</p></li>)}</ol></div> : null}
+      {reveal?.choiceImpact && <div className="choice-impact"><span>你们改变了什么</span><p>{reveal.choiceImpact}</p></div>}
+    </section>
+
+    {reveal?.players?.length ? <section className="ending-cast">
+      <header><div><span>ALL IDENTITIES REVEALED</span><h3>全员身份与私人任务</h3></div><small>{reveal.players.length} 位玩家 · 终局统一公开</small></header>
+      <div className="ending-player-grid">{reveal.players.map((player) => <article className={player.goalCompleted ? "completed" : "failed"} key={player.playerName}>
+        <div className="ending-player-head"><b>{playerMark(player.playerName)}</b><div><span>{player.playerName}</span><h4>{player.identity}</h4></div><i>{player.goalCompleted ? "目标达成" : "目标未达成"}</i></div>
+        <dl><div><dt>真实身份规则</dt><dd>{player.secretRule}</dd></div><div><dt>私人目标</dt><dd>{player.privateGoal}</dd></div>{player.survivalCondition && <div><dt>胜利 / 生还条件</dt><dd>{player.survivalCondition}</dd></div>}</dl>
+        <div className="ending-player-tasks"><strong>任务完成情况</strong>{player.completedTasks.map((task) => <span className="done" key={`all-done-${player.playerName}-${task}`}>✓ {task}</span>)}{player.failedTasks.map((task) => <span className="missed" key={`all-missed-${player.playerName}-${task}`}>× {task}</span>)}{!player.completedTasks.length && !player.failedTasks.length && <span className="missed">× 没有留下可判定的任务记录</span>}</div>
+        <p className="ending-player-summary">{player.summary}</p>
+      </article>)}</div>
+    </section> : null}
+
+    <section className="personal-settlement"><span>PERSONAL RESULT · {session.turn} 回合</span><h2>{result ? result.survived ? "你活到了结局。" : result.goalCompleted ? "你没有生还，但完成了使命。" : "这一次，你没有赢。" : "个人结算正在生成。"}</h2>{session.world?.endingCondition && <p>{session.world.endingCondition}</p>}{result ? <><div className="ending-verdict"><b className={result.goalCompleted ? "success" : "failed"}>{result.goalCompleted ? "私人目标达成" : "私人目标未达成"}</b><p>{result.summary}</p></div><div className="ending-rewards"><span><small>本局经验</small><b>+{result.xpEarned} XP</b></span><span><small>因果积分</small><b>+{result.pointsEarned}</b></span><span><small>账号等级</small><b>LV.{result.levelAfter}</b></span></div>{result.levelAfter > result.levelBefore && <strong className="level-up">LEVEL UP · LV.{result.levelAfter}</strong>}</> : <div className="ending-verdict"><p>个人任务正在结算，请稍候刷新。</p></div>}</section>
+    <button className="ending-return" onClick={onBack}>回到入口</button>
+  </div>;
 }
 
 function StoryEntry({ entry, meId }: { entry: SessionEntryView; meId: string }) {

@@ -546,6 +546,33 @@ export async function submitChoice(input: {
       nextPrompt: turn.nextPrompt,
       suggestedChoices: turn.suggestedChoices,
     };
+    const endingPlayers = turn.ended ? members.map((settledMember) => {
+      const role = safeJson<RoleCard | null>(settledMember.roleJson, null);
+      const aiResult = turn.results.find((result) => result.playerName === settledMember.name);
+      const completedTasks = (aiResult?.completedTasks ?? []).slice(0, 3);
+      const roleTasks = role?.privateTasks ?? [];
+      const failedTasks = (aiResult?.failedTasks?.length
+        ? aiResult.failedTasks
+        : roleTasks.filter((task) => !completedTasks.includes(task))).slice(0, 3);
+      return {
+        playerName: settledMember.name,
+        identity: role?.identity ?? "身份未被记录",
+        secretRule: role?.secretRule ?? "没有留下秘密规则",
+        privateGoal: role?.privateGoal ?? "私人目标未被记录",
+        survivalCondition: role?.survivalCondition,
+        survived: aiResult?.survived ?? world.format !== "竞争",
+        goalCompleted: aiResult?.goalCompleted ?? false,
+        completedTasks,
+        failedTasks,
+        summary: aiResult?.summary || "走到了这一条因果的结尾，但私人目标没有得到完整确认。",
+      };
+    }) : [];
+    if (turn.ended && turn.truthReveal) {
+      nextWorld.truthReveal = {
+        ...turn.truthReveal,
+        players: endingPlayers,
+      };
+    }
     const nextTurnNumber = session.turn + (turn.ended ? 0 : 1);
     const nextStage = getScriptStage(world.scriptId, nextTurnNumber);
     nextWorld.stageTitle = nextStage.title;
@@ -573,20 +600,16 @@ export async function submitChoice(input: {
       if (!profileLink) return [];
       const [profile] = await db.select().from(playerProfiles).where(eq(playerProfiles.deviceId, profileLink.deviceId)).limit(1);
       if (!profile) return [];
-      const role = safeJson<RoleCard | null>(settledMember.roleJson, null);
-      const aiResult = turn.results.find((result) => result.playerName === settledMember.name);
-      const completedTasks = (aiResult?.completedTasks ?? []).slice(0, 3);
-      const roleTasks = role?.privateTasks ?? [];
-      const failedTasks = (aiResult?.failedTasks?.length
-        ? aiResult.failedTasks
-        : roleTasks.filter((task) => !completedTasks.includes(task))).slice(0, 3);
-      const survived = aiResult?.survived ?? world.format !== "竞争";
-      const goalCompleted = aiResult?.goalCompleted ?? false;
+      const reveal = endingPlayers.find((item) => item.playerName === settledMember.name);
+      const completedTasks = reveal?.completedTasks ?? [];
+      const failedTasks = reveal?.failedTasks ?? [];
+      const survived = reveal?.survived ?? world.format !== "竞争";
+      const goalCompleted = reveal?.goalCompleted ?? false;
       const xpEarned = Math.min(180, 15 + completedTasks.length * 20 + (goalCompleted ? 45 : 0) + (survived ? 35 : 0));
       const pointsEarned = Math.min(150, completedTasks.length * 10 + (goalCompleted ? 30 : 0) + (survived ? 45 : 0));
       const nextXp = profile.xp + xpEarned;
       const result: PlayerEndingResult = {
-        summary: aiResult?.summary || "你走到了这一条因果的结尾，但私人目标没有得到完整确认。",
+        summary: reveal?.summary || "你走到了这一条因果的结尾，但私人目标没有得到完整确认。",
         survived,
         goalCompleted,
         completedTasks,

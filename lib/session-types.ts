@@ -36,6 +36,27 @@ export type PlayerEndingResult = {
   levelAfter: number;
 };
 
+export type EndingPlayerReveal = {
+  playerName: string;
+  identity: string;
+  secretRule: string;
+  privateGoal: string;
+  survivalCondition?: string;
+  survived: boolean;
+  goalCompleted: boolean;
+  completedTasks: string[];
+  failedTasks: string[];
+  summary: string;
+};
+
+export type TruthReveal = {
+  headline: string;
+  truth: string;
+  evidence: string[];
+  choiceImpact: string;
+  players: EndingPlayerReveal[];
+};
+
 export type PlayerProfile = {
   displayName: string;
   xp: number;
@@ -64,6 +85,7 @@ export type WorldState = {
   memory: string[];
   nextPrompt: string;
   suggestedChoices: string[];
+  truthReveal?: TruthReveal;
 };
 
 export type SessionMemberView = {
