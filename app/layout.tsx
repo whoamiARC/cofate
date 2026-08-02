@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { PwaRegister } from "./pwa-register";
+import { UiSounds } from "./ui-sounds";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -64,6 +65,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body>
         <PwaRegister />
+        <UiSounds />
         {children}
       </body>
     </html>
