@@ -55,6 +55,7 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(deepseek, /不要把非悬疑题材强行写成恐怖或规则怪谈/);
   assert.match(deepseek, /completedTasks/);
   assert.match(deepseek, /truthReveal/);
+  assert.match(deepseek, /fallbackTurn/);
   assert.match(deepseek, /底层真相/);
   assert.match(app, /TRUTH REVEALED/);
   assert.match(app, /全员身份与私人任务/);
@@ -80,6 +81,10 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /script-card/);
   assert.match(sessionService, /entry\.kind === "choice"/);
   assert.match(sessionService, /const duplicate = Boolean\(existing\)/);
+  assert.match(sessionService, /recoverReadyTurn/);
+  assert.match(sessionRoute, /retry_turn/);
+  assert.match(app, /AmbientMusicToggle/);
+  assert.match(app, /立即重新演算/);
   assert.match(schema, /session_choice_unique/);
   assert.match(schema, /where\(sql`\$\{table\.kind\} = 'choice'`\)/);
   assert.match(sessionService, /sessionResults/);

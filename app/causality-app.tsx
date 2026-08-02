@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { PlayerProfile, SessionEntryView, SessionView } from "../lib/session-types";
@@ -338,6 +338,26 @@ export function CausalityApp() {
     }
   }
 
+  async function retryTurn() {
+    if (!playerToken || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/sessions/${encodeURIComponent(roomCode)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-player-token": playerToken },
+        body: JSON.stringify({ action: "retry_turn" }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(data.error || "本回合重新演算失败");
+      await loadSession(roomCode, playerToken, true);
+    } catch (retryError) {
+      setError(retryError instanceof Error ? retryError.message : "本回合重新演算失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function sendWhisperMessage(targetMemberId: string, content: string) {
     if (!playerToken || !targetMemberId || !content.trim() || busy) return false;
     setBusy(true);
@@ -485,6 +505,7 @@ export function CausalityApp() {
         onSelectRole={selectRole}
         onWhisper={sendWhisperMessage}
         onSubmit={sendChoice}
+        onRetry={retryTurn}
         onBack={goHome}
         onInvite={() => setInviteOpen(true)}
         onCloseInvite={() => setInviteOpen(false)}
@@ -532,6 +553,7 @@ function Room(props: {
   onSelectRole: (roleId: string) => void;
   onWhisper: (targetMemberId: string, content: string) => Promise<boolean>;
   onSubmit: (event: FormEvent) => void;
+  onRetry: () => void;
   onBack: () => void;
   onInvite: () => void;
   onCloseInvite: () => void;
@@ -551,7 +573,7 @@ function Room(props: {
       <header className="room-header">
         <button className="round-button" onClick={props.onBack} aria-label="返回">←</button>
         <div><strong>{session.title}</strong><span>#{session.code} · {statusText(session.status)}</span></div>
-        {session.mode === "private" && session.requiredPlayers !== 1 ? <button className="invite-button" onClick={props.onInvite}>邀请</button> : session.requiredPlayers === 1 ? <span className="match-tag">独行局</span> : <span className="match-tag">匹配局</span>}
+        <div className="room-header-actions"><AmbientMusicToggle active={active} />{session.mode === "private" && session.requiredPlayers !== 1 ? <button className="invite-button" onClick={props.onInvite}>邀请</button> : session.requiredPlayers === 1 ? <span className="match-tag">独行局</span> : <span className="match-tag">匹配局</span>}</div>
       </header>
       <div className={`room-layout mobile-tab-${roomTab}`}>
         <aside className="room-sidebar">
@@ -591,7 +613,8 @@ function Room(props: {
                 <div className="choice-status"><span>第 {session.turn}{session.world?.maxTurns ? ` / ${session.world.maxTurns}` : ""} 回合{session.world?.stageTitle ? ` · ${session.world.stageTitle}` : ""}</span><small>{props.meChosen ? `已提交 · ${props.choicesCount}/${session.members.length} 人完成` : session.world?.nextPrompt}</small></div>
                 {!props.meChosen && session.world?.suggestedChoices?.length ? <div className="suggestions">{session.world.suggestedChoices.map((item) => <button type="button" onClick={() => props.onChoice(item)} key={item}>{item}</button>)}</div> : null}
                 <div className="choice-line"><textarea value={props.choice} onChange={(event) => props.onChoice(event.target.value)} disabled={props.meChosen || props.busy || session.status === "resolving"} maxLength={360} rows={2} placeholder={props.meChosen ? "等待其他人的私密行动…" : "写下你的真实行动；公开讨论和最终行动可以不同"} /><button disabled={props.meChosen || props.busy || !props.choice.trim() || session.status === "resolving"}>{props.busy ? "…" : "秘密提交"}</button></div>
-                {props.error && <small className="error-text">{props.error}</small>}
+                {session.status === "active" && session.errorMessage && props.meChosen && props.choicesCount === session.members.length && <div className="turn-recovery"><span>刚才的演算超时，系统正在自动恢复这一回合。</span><button type="button" onClick={props.onRetry} disabled={props.busy}>{props.busy ? "恢复中…" : "立即重新演算"}</button></div>}
+                {(props.error || (session.status === "active" ? session.errorMessage : "")) && <small className="error-text">{props.error || session.errorMessage}</small>}
               </form>}
               {session.status === "ended" && <EndingCard session={session} onBack={props.onBack} />}
             </>
@@ -604,6 +627,87 @@ function Room(props: {
       {props.inviteOpen && <InviteModal code={props.roomCode} url={props.inviteUrl} onClose={props.onCloseInvite} onCopy={props.onCopy} />}
     </main>
   );
+}
+
+type AmbientGraph = {
+  context: AudioContext;
+  sources: OscillatorNode[];
+};
+
+function AmbientMusicToggle({ active }: { active: boolean }) {
+  const graphRef = useRef<AmbientGraph | null>(null);
+  const [playing, setPlaying] = useState(false);
+
+  const stop = useCallback(() => {
+    const graph = graphRef.current;
+    graphRef.current = null;
+    if (graph) {
+      graph.sources.forEach((source) => {
+        try { source.stop(); } catch { /* The oscillator may already be stopped. */ }
+      });
+      void graph.context.close();
+    }
+    setPlaying(false);
+    window.localStorage.setItem("cofate-ambient-music", "off");
+  }, []);
+
+  const start = useCallback(async () => {
+    if (graphRef.current || !active) return;
+    const context = new AudioContext();
+    const master = context.createGain();
+    const filter = context.createBiquadFilter();
+    master.gain.setValueAtTime(0.0001, context.currentTime);
+    master.gain.exponentialRampToValueAtTime(0.045, context.currentTime + 1.8);
+    filter.type = "lowpass";
+    filter.frequency.value = 520;
+    filter.Q.value = 0.8;
+    filter.connect(master);
+    master.connect(context.destination);
+    const sources = [55, 82.41, 110].map((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = index === 1 ? "triangle" : "sine";
+      oscillator.frequency.value = frequency;
+      oscillator.detune.value = index === 0 ? -7 : index === 2 ? 5 : 0;
+      gain.gain.value = index === 1 ? 0.18 : 0.12;
+      oscillator.connect(gain);
+      gain.connect(filter);
+      oscillator.start();
+      return oscillator;
+    });
+    const pulse = context.createOscillator();
+    const pulseDepth = context.createGain();
+    pulse.frequency.value = 0.09;
+    pulseDepth.gain.value = 0.012;
+    pulse.connect(pulseDepth);
+    pulseDepth.connect(master.gain);
+    pulse.start();
+    sources.push(pulse);
+    await context.resume();
+    graphRef.current = { context, sources };
+    setPlaying(true);
+    window.localStorage.setItem("cofate-ambient-music", "on");
+  }, [active]);
+
+  useEffect(() => {
+    if (!active || window.localStorage.getItem("cofate-ambient-music") !== "on") return;
+    const unlock = () => void start();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, [active, start]);
+
+  useEffect(() => () => {
+    const graph = graphRef.current;
+    graphRef.current = null;
+    if (graph) {
+      graph.sources.forEach((source) => {
+        try { source.stop(); } catch { /* The oscillator may already be stopped. */ }
+      });
+      void graph.context.close();
+    }
+  }, []);
+
+  return <button type="button" className={`ambient-toggle ${playing ? "playing" : ""}`} onClick={() => playing ? stop() : void start()} aria-label={playing ? "关闭氛围音乐" : "开启氛围音乐"} aria-pressed={playing}><i>{playing ? "♪" : "♫"}</i><span>{playing ? "音乐中" : "音乐"}</span></button>;
 }
 
 function Lobby({ session, busy, error, onStart, onInvite, onSelectRole }: { session: SessionView; busy: boolean; error: string; onStart: () => void; onInvite: () => void; onSelectRole: (roleId: string) => void }) {

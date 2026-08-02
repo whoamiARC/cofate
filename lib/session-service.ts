@@ -510,7 +510,7 @@ export async function submitChoice(input: {
   ]);
   if (choices.length < members.length) return { processing: false, duplicate };
 
-  const lock = await db.update(sessions).set({ status: "resolving", updatedAt: new Date() }).where(and(
+  const lock = await db.update(sessions).set({ status: "resolving", errorMessage: null, updatedAt: new Date() }).where(and(
     eq(sessions.id, session.id),
     eq(sessions.status, "active"),
     eq(sessions.turn, session.turn)
@@ -669,6 +669,38 @@ export async function submitChoice(input: {
     }
   })());
   return { processing: true, duplicate };
+}
+
+export async function retryReadyTurn(sessionId: string, force = false) {
+  const db = getDb();
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+  if (!session || session.status !== "active") return { processing: false, recovered: false };
+  if (!force) {
+    if (!session.errorMessage) return { processing: false, recovered: false };
+    if (Date.now() - session.updatedAt.getTime() < 4_000) return { processing: false, recovered: false };
+  }
+  const [members, choices] = await Promise.all([
+    db.select().from(sessionMembers).where(eq(sessionMembers.sessionId, session.id)).orderBy(asc(sessionMembers.joinedAt)),
+    db.select().from(sessionEntries).where(and(
+      eq(sessionEntries.sessionId, session.id),
+      eq(sessionEntries.turn, session.turn),
+      eq(sessionEntries.kind, "choice"),
+    )).orderBy(asc(sessionEntries.createdAt)),
+  ]);
+  if (!members.length || choices.length < members.length) return { processing: false, recovered: false };
+  const firstChoice = choices.find((choice) => choice.memberId && members.some((member) => member.id === choice.memberId));
+  if (!firstChoice?.memberId) return { processing: false, recovered: false };
+  const result = await submitChoice({
+    sessionId: session.id,
+    memberId: firstChoice.memberId,
+    content: firstChoice.content,
+  });
+  return { ...result, recovered: true };
+}
+
+export async function recoverReadyTurn(code: string) {
+  const session = await findSession(code);
+  return session ? retryReadyTurn(session.id) : { processing: false, recovered: false };
 }
 
 export async function claimForGeneration(sessionId: string) {

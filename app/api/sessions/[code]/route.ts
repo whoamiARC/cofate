@@ -9,6 +9,8 @@ import {
   findSession,
   generateSessionWorld,
   getSessionView,
+  recoverReadyTurn,
+  retryReadyTurn,
   RoleAlreadyClaimedError,
   sendWhisper,
   selectMemberRole,
@@ -35,6 +37,10 @@ export async function GET(request: Request, context: RouteContext) {
     const { code } = await context.params;
     const view = await getSessionView(code, tokenFrom(request));
     if (!view) return Response.json({ error: "这个入口不存在或已经消失" }, { status: 404 });
+    const allChoicesReady = view.members.length > 0 && view.members.every((member) => member.hasChosen);
+    if (view.me && view.status === "active" && view.errorMessage && allChoicesReady) {
+      waitUntil(recoverReadyTurn(code));
+    }
     return Response.json(view, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const message = publicErrorMessage(error, "世界暂时无法打开");
@@ -46,7 +52,7 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { code } = await context.params;
     const body = (await request.json()) as {
-      action?: "join" | "select_role" | "start" | "choice" | "whisper";
+      action?: "join" | "select_role" | "start" | "choice" | "whisper" | "retry_turn";
       name?: string;
       content?: string;
       deviceId?: string;
@@ -59,6 +65,7 @@ export async function POST(request: Request, context: RouteContext) {
       start: 8,
       choice: 120,
       whisper: 80,
+      retry_turn: 12,
     } as const;
     if (body.action && body.action in limits) {
       const blocked = await guardRequest(
@@ -112,6 +119,12 @@ export async function POST(request: Request, context: RouteContext) {
       if (!content) return Response.json({ error: "写下你的选择后再提交" }, { status: 400 });
       const result = await submitChoice({ sessionId: session.id, memberId: member.id, content });
       return Response.json({ ok: true, ...result });
+    }
+
+    if (body.action === "retry_turn") {
+      const result = await retryReadyTurn(session.id, true);
+      if (!result.processing) return Response.json({ error: "本回合还没有收齐所有人的选择" }, { status: 409 });
+      return Response.json({ ok: true, ...result }, { status: 202 });
     }
 
     if (body.action === "whisper") {
