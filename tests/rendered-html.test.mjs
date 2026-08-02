@@ -86,6 +86,7 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(sessionService, /recoverReadyTurn/);
   assert.match(sessionRoute, /retry_turn/);
   assert.match(app, /AmbientMusicToggle/);
+  assert.match(app, /cofate-night-loop\.mp3/);
   assert.match(app, /立即重新演算/);
   assert.match(schema, /session_choice_unique/);
   assert.match(schema, /where\(sql`\$\{table\.kind\} = 'choice'`\)/);
@@ -101,6 +102,7 @@ test("contains the complete CoFate AI social product", async () => {
   assert.equal(coverThumbnails.length, 38);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
   await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.4.apk", templateRoot));
+  await access(new URL("public/audio/cofate-night-loop.mp3", templateRoot));
 });
 
 test("removes the temporary starter preview", async () => {

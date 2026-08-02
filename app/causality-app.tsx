@@ -633,81 +633,44 @@ function Room(props: {
   );
 }
 
-type AmbientGraph = {
-  context: AudioContext;
-  sources: OscillatorNode[];
-};
+type AmbientPlayer = { audio: HTMLAudioElement };
 
 function AmbientMusicToggle({ active }: { active: boolean }) {
-  const graphRef = useRef<AmbientGraph | null>(null);
+  const playerRef = useRef<AmbientPlayer | null>(null);
   const [playing, setPlaying] = useState(false);
 
+  const getPlayer = useCallback(() => {
+    if (playerRef.current) return playerRef.current;
+    const audio = new Audio("/audio/cofate-night-loop.mp3");
+    audio.loop = true;
+    audio.preload = "auto";
+    audio.volume = 0.62;
+    playerRef.current = { audio };
+    return playerRef.current;
+  }, []);
+
   const stop = useCallback(() => {
-    const graph = graphRef.current;
-    graphRef.current = null;
-    if (graph) {
-      graph.sources.forEach((source) => {
-        try { source.stop(); } catch { /* The oscillator may already be stopped. */ }
-      });
-      void graph.context.close();
-    }
+    playerRef.current?.audio.pause();
     setPlaying(false);
     window.localStorage.setItem("cofate-ambient-music", "off");
   }, []);
 
   const start = useCallback(async () => {
-    if (graphRef.current || !active) return;
-    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const context = new AudioContextClass();
-    const master = context.createGain();
-    const filter = context.createBiquadFilter();
-    master.gain.setValueAtTime(0.0001, context.currentTime);
-    master.gain.exponentialRampToValueAtTime(0.15, context.currentTime + 1.2);
-    filter.type = "lowpass";
-    filter.frequency.value = 1_500;
-    filter.Q.value = 0.8;
-    filter.connect(master);
-    master.connect(context.destination);
-    const sources = [110, 164.81, 220, 329.63].map((frequency, index) => {
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.type = index === 1 ? "triangle" : "sine";
-      oscillator.frequency.value = frequency;
-      oscillator.detune.value = index === 0 ? -7 : index === 3 ? 5 : 0;
-      gain.gain.value = [0.11, 0.08, 0.06, 0.035][index];
-      oscillator.connect(gain);
-      gain.connect(filter);
-      oscillator.start();
-      return oscillator;
-    });
-    const pulse = context.createOscillator();
-    const pulseDepth = context.createGain();
-    pulse.frequency.value = 0.08;
-    pulseDepth.gain.value = 0.025;
-    pulse.connect(pulseDepth);
-    pulseDepth.connect(master.gain);
-    pulse.start();
-    sources.push(pulse);
-    const chimeGain = context.createGain();
-    chimeGain.gain.setValueAtTime(0.0001, context.currentTime);
-    chimeGain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.03);
-    chimeGain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1.4);
-    chimeGain.connect(context.destination);
-    [523.25, 659.25].forEach((frequency, index) => {
-      const chime = context.createOscillator();
-      chime.type = "sine";
-      chime.frequency.value = frequency;
-      chime.connect(chimeGain);
-      chime.start(context.currentTime + index * 0.12);
-      chime.stop(context.currentTime + 1.45);
-      sources.push(chime);
-    });
-    graphRef.current = { context, sources };
-    await context.resume();
-    setPlaying(true);
-    window.localStorage.setItem("cofate-ambient-music", "on");
-  }, [active]);
+    if (!active) return;
+    try {
+      const { audio } = getPlayer();
+      await audio.play();
+      setPlaying(true);
+      window.localStorage.setItem("cofate-ambient-music", "on");
+    } catch {
+      setPlaying(false);
+    }
+  }, [active, getPlayer]);
+
+  useEffect(() => {
+    if (!active) return;
+    getPlayer().audio.load();
+  }, [active, getPlayer]);
 
   useEffect(() => {
     if (!active || window.localStorage.getItem("cofate-ambient-music") === "off") return;
@@ -717,14 +680,8 @@ function AmbientMusicToggle({ active }: { active: boolean }) {
   }, [active, start]);
 
   useEffect(() => () => {
-    const graph = graphRef.current;
-    graphRef.current = null;
-    if (graph) {
-      graph.sources.forEach((source) => {
-        try { source.stop(); } catch { /* The oscillator may already be stopped. */ }
-      });
-      void graph.context.close();
-    }
+    playerRef.current?.audio.pause();
+    playerRef.current = null;
   }, []);
 
   return <button type="button" className={`ambient-toggle ${playing ? "playing" : ""}`} onClick={() => playing ? stop() : void start()} aria-label={playing ? "关闭氛围音乐" : "开启氛围音乐"} aria-pressed={playing}><i>{playing ? "♪" : "♫"}</i><span>{playing ? "音乐中" : "音乐"}</span></button>;

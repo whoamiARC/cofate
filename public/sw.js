@@ -1,4 +1,4 @@
-const CACHE_NAME = "cofate-shell-v2";
+const CACHE_NAME = "cofate-shell-v3";
 const COVER_CACHE_NAME = "cofate-covers-v1";
 const APP_SHELL = ["/app", "/manifest.webmanifest", "/favicon.svg"];
 
@@ -48,7 +48,8 @@ self.addEventListener("fetch", (event) => {
           response.ok &&
           (request.destination === "script" ||
             request.destination === "style" ||
-            request.destination === "image")
+            request.destination === "image" ||
+            request.destination === "audio")
         ) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
