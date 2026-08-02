@@ -105,7 +105,7 @@ export async function ensureSchema() {
       "CREATE INDEX IF NOT EXISTS session_entries_session_idx ON session_entries(session_id, created_at)"
     ),
     env.DB.prepare(
-      "CREATE UNIQUE INDEX IF NOT EXISTS session_choice_unique ON session_entries(session_id, member_id, turn, kind)"
+      "CREATE UNIQUE INDEX IF NOT EXISTS session_choice_unique ON session_entries(session_id, member_id, turn, kind) WHERE kind = 'choice'"
     ),
     env.DB.prepare(
       "CREATE INDEX IF NOT EXISTS sessions_match_idx ON sessions(mode, status, created_at)"

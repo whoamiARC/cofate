@@ -1,4 +1,5 @@
-import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import { integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const worlds = sqliteTable("worlds", {
   id: text("id").primaryKey(),
@@ -73,7 +74,11 @@ export const sessionEntries = sqliteTable("session_entries", {
   content: text("content").notNull(),
   metaJson: text("meta_json"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-});
+}, (table) => [
+  uniqueIndex("session_choice_unique")
+    .on(table.sessionId, table.memberId, table.turn, table.kind)
+    .where(sql`${table.kind} = 'choice'`),
+]);
 
 export const dailyCustomUsage = sqliteTable("daily_custom_usage", {
   deviceId: text("device_id").notNull(),

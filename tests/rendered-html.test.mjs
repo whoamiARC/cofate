@@ -66,6 +66,9 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /public-rules/);
   assert.match(app, /script-card/);
   assert.match(sessionService, /entry\.kind === "choice"/);
+  assert.match(sessionService, /const duplicate = Boolean\(existing\)/);
+  assert.match(schema, /session_choice_unique/);
+  assert.match(schema, /where\(sql`\$\{table\.kind\} = 'choice'`\)/);
   assert.match(sessionService, /sessionResults/);
   assert.match(schema, /player_profiles/);
   assert.match(sessionRoute, /waitUntil\(generateSessionWorld/);

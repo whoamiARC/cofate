@@ -23,6 +23,13 @@ function tokenFrom(request: Request) {
   return request.headers.get("x-player-token")?.trim() || "";
 }
 
+function publicErrorMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  return /D1_ERROR|Failed query|SQLITE|constraint failed/i.test(message)
+    ? "这一回合暂时没有成功保存，请重试"
+    : message;
+}
+
 export async function GET(request: Request, context: RouteContext) {
   try {
     const { code } = await context.params;
@@ -30,7 +37,7 @@ export async function GET(request: Request, context: RouteContext) {
     if (!view) return Response.json({ error: "这个入口不存在或已经消失" }, { status: 404 });
     return Response.json(view, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "世界暂时无法打开";
+    const message = publicErrorMessage(error, "世界暂时无法打开");
     return Response.json({ error: message }, { status: 500 });
   }
 }
@@ -117,7 +124,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     return Response.json({ error: "未知操作" }, { status: 400 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "操作失败";
+    const message = publicErrorMessage(error, "操作失败");
     return Response.json({ error: message }, {
       status: error instanceof RoleAlreadyClaimedError ? 409 : 500,
     });

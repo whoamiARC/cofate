@@ -486,19 +486,20 @@ export async function submitChoice(input: {
     eq(sessionEntries.turn, session.turn),
     eq(sessionEntries.kind, "choice")
   )).limit(1);
-  if (existing) return { processing: false, duplicate: true };
-
-  await db.insert(sessionEntries).values({
-    id: crypto.randomUUID(),
-    sessionId: session.id,
-    memberId: member.id,
-    turn: session.turn,
-    kind: "choice",
-    author: member.name,
-    content: input.content.trim().slice(0, 360),
-    metaJson: null,
-    createdAt: new Date(),
-  });
+  const duplicate = Boolean(existing);
+  if (!existing) {
+    await db.insert(sessionEntries).values({
+      id: crypto.randomUUID(),
+      sessionId: session.id,
+      memberId: member.id,
+      turn: session.turn,
+      kind: "choice",
+      author: member.name,
+      content: input.content.trim().slice(0, 360),
+      metaJson: null,
+      createdAt: new Date(),
+    });
+  }
   const [members, choices] = await Promise.all([
     db.select().from(sessionMembers).where(eq(sessionMembers.sessionId, session.id)).orderBy(asc(sessionMembers.joinedAt)),
     db.select().from(sessionEntries).where(and(
@@ -507,14 +508,14 @@ export async function submitChoice(input: {
       eq(sessionEntries.kind, "choice")
     )).orderBy(asc(sessionEntries.createdAt)),
   ]);
-  if (choices.length < members.length) return { processing: false, duplicate: false };
+  if (choices.length < members.length) return { processing: false, duplicate };
 
   const lock = await db.update(sessions).set({ status: "resolving", updatedAt: new Date() }).where(and(
     eq(sessions.id, session.id),
     eq(sessions.status, "active"),
     eq(sessions.turn, session.turn)
   )).run();
-  if (!lock.meta.changes) return { processing: true, duplicate: false };
+  if (!lock.meta.changes) return { processing: true, duplicate };
 
   waitUntil((async () => {
     try {
@@ -638,12 +639,13 @@ export async function submitChoice(input: {
       }).where(eq(sessions.id, session.id)),
     ]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "因果暂时没有回应";
+      console.error("Session turn resolution failed", error);
+      const message = "这一回合没有成功汇合，请稍后重试";
       await db.update(sessions).set({ status: "active", errorMessage: message, updatedAt: new Date() }).where(eq(sessions.id, session.id));
       throw error;
     }
   })());
-  return { processing: true, duplicate: false };
+  return { processing: true, duplicate };
 }
 
 export async function claimForGeneration(sessionId: string) {
