@@ -58,7 +58,9 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(app, /私密行动/);
   assert.match(app, /选择你要成为谁/);
   assert.match(app, /匿名密语/);
-  assert.match(app, /getScriptCover/);
+  assert.match(app, /getScriptCoverThumbnail/);
+  assert.match(app, /loading=\{priority \? "eager" : "lazy"\}/);
+  assert.match(app, /fetchPriority=\{priority \? "high" : "auto"\}/);
   assert.match(sessionService, /entry\.kind === "choice"/);
   assert.match(sessionService, /sessionResults/);
   assert.match(schema, /player_profiles/);
@@ -68,6 +70,8 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(requestGuard, /status: 429/);
   const covers = (await readdir(new URL("../public/covers/", import.meta.url))).filter((file) => file.endsWith(".webp"));
   assert.equal(covers.length, 38);
+  const coverThumbnails = (await readdir(new URL("../public/covers/small/", import.meta.url))).filter((file) => file.endsWith(".webp"));
+  assert.equal(coverThumbnails.length, 38);
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
   await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.4.apk", templateRoot));
 });

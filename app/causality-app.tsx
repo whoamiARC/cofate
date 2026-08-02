@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { PlayerProfile, SessionEntryView, SessionView } from "../lib/session-types";
-import { getScriptCover, getScriptMechanics, SCRIPT_CATALOG, SCRIPT_CATEGORIES, type ScriptCatalogItem } from "../lib/script-catalog";
+import { getScriptCover, getScriptCoverThumbnail, getScriptMechanics, SCRIPT_CATALOG, SCRIPT_CATEGORIES, type ScriptCatalogItem } from "../lib/script-catalog";
 
 const ANDROID_APK_PATH = "/downloads/CoFate-Android-Beta-v0.1.4.apk";
 
@@ -500,7 +500,7 @@ export function CausalityApp() {
         <div className="store-heading"><p className="eyebrow">STORIES FOR REAL PEOPLE</p><h1>选择今晚的<br /><em>共同经历。</em></h1><p>每个剧本都有独立身份、规则与分支。AI 负责世界，朋友负责选择。</p></div>
         <div className="store-quick-actions"><button className="custom-world-card" onClick={openCustomWorld}><span>AI 自定义</span><strong>写一句话，生成你的剧本</strong><p>今日免费额度 <b>{quota.remaining} / {quota.limit}</b></p><i>＋</i></button><button className="invite-entry-card" onClick={() => { setError(""); setView("join"); }}><span>#</span><strong>输入邀请码</strong><p>进入朋友的世界</p></button></div>
         <div className="store-section-title"><div><p className="eyebrow">FEATURED TONIGHT</p><h2>今晚精选</h2></div><button onClick={() => setView("discover")}>查看全部 →</button></div>
-        <div className="featured-script-row">{SCRIPT_CATALOG.filter((script) => script.featured).map((script) => <ScriptCard script={script} onOpen={openScript} featured key={script.id} />)}</div>
+        <div className="featured-script-row">{SCRIPT_CATALOG.filter((script) => script.featured).map((script, index) => <ScriptCard script={script} onOpen={openScript} featured priority={index < 2} key={script.id} />)}</div>
         <div className="store-section-title solo-section-title"><div><p className="eyebrow">PLAY ALONE · NEVER EMPTY</p><h2>一个人，也能进入世界</h2></div></div>
         <div className="script-card-grid solo-script-grid">{SCRIPT_CATALOG.filter((script) => script.playerCount === 1).map((script) => <ScriptCard script={script} onOpen={openScript} key={script.id} />)}</div>
         <div className="store-section-title"><div><p className="eyebrow">FREE TO PLAY</p><h2>免费开局</h2></div></div>
@@ -652,9 +652,11 @@ function AppSplash() {
   return <main className="app-splash"><span>因</span><strong>CoFate</strong><small>世界正在打开</small></main>;
 }
 
-function ScriptCard({ script, onOpen, featured = false }: { script: ScriptCatalogItem; onOpen: (script: ScriptCatalogItem) => void; featured?: boolean }) {
+function ScriptCard({ script, onOpen, featured = false, priority = false }: { script: ScriptCatalogItem; onOpen: (script: ScriptCatalogItem) => void; featured?: boolean; priority?: boolean }) {
   const mechanics = getScriptMechanics(script.id).slice(0, 2);
-  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.format ?? "合作"}本，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art" style={{ backgroundImage: `linear-gradient(180deg,transparent 35%,rgba(9,11,8,.78)),url(${getScriptCover(script.id)})` }}><span className="cover-mode">{script.playerCount === 1 ? "SOLO" : script.format ?? "合作"}</span></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><div className="mechanic-tags">{mechanics.map((mechanic) => <span key={mechanic}>{mechanic}</span>)}</div><small>{script.format ?? "合作"} · {script.duration} · {script.plan.maxTurns} 回合 <i>→</i></small></div></button>;
+  // The app ships pre-sized WebP variants, so a native image keeps lazy loading predictable in the remote Android shell.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <button className={`script-card tone-${script.tone} ${featured ? "featured" : ""}`} onClick={() => onOpen(script)} aria-label={`${script.title}，${script.format ?? "合作"}本，${script.price ? "1元精品剧本" : "免费剧本"}`}><div className="script-art"><img src={getScriptCoverThumbnail(script.id)} srcSet={`${getScriptCoverThumbnail(script.id)} 480w, ${getScriptCover(script.id)} 960w`} sizes={featured ? "(max-width: 720px) 83vw, 69vw" : "(max-width: 720px) 48vw, 50vw"} alt={`${script.title}剧本封面`} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} decoding="async" /><span className="cover-mode">{script.playerCount === 1 ? "SOLO" : script.format ?? "合作"}</span></div><div className="script-card-copy"><div className="script-meta"><span>{script.category} · {script.players}</span><b className={script.price ? "paid" : "free"}>{script.price ? "¥1" : "免费"}</b></div><strong>{script.title}</strong><p>{script.tagline}</p><div className="mechanic-tags">{mechanics.map((mechanic) => <span key={mechanic}>{mechanic}</span>)}</div><small>{script.format ?? "合作"} · {script.duration} · {script.plan.maxTurns} 回合 <i>→</i></small></div></button>;
 }
 
 function PurchaseSheet({ item, onClose }: { item: PaywallItem; onClose: () => void }) {

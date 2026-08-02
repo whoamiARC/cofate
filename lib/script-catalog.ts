@@ -298,6 +298,10 @@ export function getScriptCover(scriptId: string) {
   return `/covers/${scriptId}.webp`;
 }
 
+export function getScriptCoverThumbnail(scriptId: string) {
+  return `/covers/small/${scriptId}.webp`;
+}
+
 export function getScriptMechanics(scriptId?: string | null) {
   const script = scriptId ? findScript(scriptId) : undefined;
   return script?.mechanics ?? CATEGORY_MECHANICS[script?.category ?? "轻悬疑"];
