@@ -1,12 +1,6 @@
-const CACHE_NAME = "cofate-shell-v6";
+const CACHE_NAME = "cofate-shell-v7";
 const COVER_CACHE_NAME = "cofate-covers-v1";
-const APP_SHELL = [
-  "/app",
-  "/manifest.webmanifest",
-  "/favicon.svg",
-  "/audio/cofate-ui-tap.wav",
-  "/audio/cofate-ui-confirm.wav",
-];
+const APP_SHELL = ["/app", "/manifest.webmanifest", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

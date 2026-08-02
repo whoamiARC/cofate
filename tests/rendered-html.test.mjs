@@ -5,11 +5,10 @@ import test from "node:test";
 const templateRoot = new URL("../", import.meta.url);
 
 test("contains the complete CoFate AI social product", async () => {
-  const [app, marketing, layout, uiSounds, deepseek, sessionRoute, manifest, requestGuard, scriptCatalog, scriptTruths, sessionService, schema] = await Promise.all([
+  const [app, marketing, layout, deepseek, sessionRoute, manifest, requestGuard, scriptCatalog, scriptTruths, sessionService, schema] = await Promise.all([
     readFile(new URL("../app/causality-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/marketing-home.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/ui-sounds.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/deepseek.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/sessions/[code]/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
@@ -88,9 +87,6 @@ test("contains the complete CoFate AI social product", async () => {
   assert.match(sessionRoute, /retry_turn/);
   assert.match(app, /AmbientMusicToggle/);
   assert.match(app, /cofate-night-loop\.mp3/);
-  assert.match(layout, /UiSounds/);
-  assert.match(uiSounds, /cofate-ui-tap\.wav/);
-  assert.match(uiSounds, /cofate-ui-confirm\.wav/);
   assert.match(await readFile(new URL("scripts/generate-ambient-track.mjs", templateRoot), "utf8"), /const duration = barSeconds \* barCount/);
   assert.match(await readFile(new URL("scripts/generate-ambient-track.mjs", templateRoot), "utf8"), /const barCount = 60/);
   assert.match(app, /立即重新演算/);
@@ -109,8 +105,6 @@ test("contains the complete CoFate AI social product", async () => {
   assert.doesNotMatch(`${app}\n${layout}`, /codex-preview|react-loading-skeleton/i);
   await access(new URL("public/downloads/CoFate-Android-Beta-v0.1.4.apk", templateRoot));
   await access(new URL("public/audio/cofate-night-loop.mp3", templateRoot));
-  await access(new URL("public/audio/cofate-ui-tap.wav", templateRoot));
-  await access(new URL("public/audio/cofate-ui-confirm.wav", templateRoot));
 });
 
 test("removes the temporary starter preview", async () => {
